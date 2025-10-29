@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docling OCR - Document Converter</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Docling OCR</h1>
+                <p class="subtitle">AI-Powered Document Conversion</p>
+            </div>
+            <div class="header-controls">
+                <!-- Pipeline Mode Toggle -->
+                <div class="pipeline-toggle">
+                    <span class="pipeline-label">Pipeline:</span>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="pipelineMode" disabled>
+                        <label for="pipelineMode" class="toggle-label">
+                            <span class="toggle-option">Standard</span>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-option">VLM</span>
+                        </label>
+                    </div>
+                </div>
+                <button id="themeToggle" class="theme-toggle" title="Toggle theme">🌙</button>
+            </div>
+        </header>
+        
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">
+            <div class="status-item">
+                <span class="status-label">Mode:</span>
+                <span class="status-value" id="currentMode">Loading...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">OCR:</span>
+                <span class="status-value" id="ocrStatus">—</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Models:</span>
+                <span class="status-value" id="modelsStatus">—</span>
+            </div>
+            <div class="status-item">
+                <label class="toggle-container">
+                    <input type="checkbox" id="ocrToggle" onchange="toggleOCR()">
+                    <span class="toggle-slider-inline"></span>
+                    <span class="toggle-text">Enable OCR for Scans</span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">📄</div>
+                <p class="drop-zone-text">Drag files here or click to select</p>
+                <p class="drop-zone-hint">Supports PDF, DOCX, XLSX, images and more</p>
+                <input type="file" id="fileInput" multiple hidden accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.json,.html,.xml,.jpg,.jpeg,.png,.gif,.bmp,.tif,.tiff,.zip,.rar,.7z,.epub">
+            </div>
+            
+            <!-- Advanced Options -->
+            <details class="options-panel">
+                <summary>Advanced Options</summary>
+                <div class="options-content">
+                    <div class="option-group">
+                        <label>
+                            <input type="checkbox" id="extractTables">
+                            Extract Tables
+                        </label>
+                    </div>
+                    <div class="option-group">
+                        <label>
+                            <input type="checkbox" id="enableChunking">
+                            Enable Chunking (for RAG)
+                        </label>
+                    </div>
+                    <div class="option-group">
+                        <label>
+                            Output Format:
+                            <select id="outputFormat">
+                                <option value="markdown" selected>Markdown</option>
+                                <option value="html">HTML</option>
+                                <option value="json">JSON</option>
+                                <option value="doctags">DocTags</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </details>
+            
+            <button class="btn-primary" id="convertBtn" onclick="uploadFiles()">
+                <span class="btn-icon">🔄</span>
+                Convert Documents
+            </button>
+            
+            <!-- Error/Success Messages -->
+            <div class="message" id="errorMessage" style="display:none"></div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div class="spinner-container" id="spinner" style="display:none">
+            <div class="spinner">
+                <div class="spinner-circle"></div>
+            </div>
+            <p class="spinner-text">Processing with Docling...</p>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection" style="display:none">
+            <div class="results-header">
+                <h2>Results</h2>
+                <span class="results-count" id="resultsCount"></span>
+            </div>
+            
+            <!-- Preview Window -->
+            <div class="preview-container">
+                <div class="preview-window" id="preview"></div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="actions">
+                <button class="btn-action" onclick="copyText()" title="Copy all text to clipboard">
+                    <span class="btn-icon">📋</span>
+                    Copy All Text
+                </button>
+                <button class="btn-action" onclick="downloadSingleMD()" title="Download as single MD file">
+                    <span class="btn-icon">💾</span>
+                    Download Single MD
+                </button>
+                <button class="btn-action btn-primary-alt" onclick="downloadAllArchive()" title="Download all as ZIP archive">
+                    <span class="btn-icon">📦</span>
+                    Download All as ZIP
+                </button>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer>
+            <p>Docling OCR v1.0.0 | Powered by <a href="https://docling-project.github.io/docling/" target="_blank">Docling</a></p>
+            <p class="footer-links">
+                <a href="/docs" target="_blank">API Docs</a> | 
+                <a href="/api" target="_blank">API Info</a> |
+                <a href="https://github.com/docling-project/docling" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+    
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+

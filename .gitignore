@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Temp files
+temp/
+*.tmp
+*.bak
+
+# Models (can be large)
+models/*
+!models/.gitkeep
+
+# Offline deploy
+offline-deploy/
+*.tar.gz
+*.zip
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+
+# Docker
+docker-compose.override.yml
+
+# Documentation builds
+docs/_build/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Distribution
+*.rar
+*.7z
+
