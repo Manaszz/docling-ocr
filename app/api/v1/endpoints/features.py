@@ -8,44 +8,19 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 
 from app.core.config import settings
 from app.models.schemas import TableExtractionResult, ChunkResult, FormatInfo
-from app.services.converter import DoclingConverterService
+from app.services.converter_manager import get_converter_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Initialize converter
-def get_converter():
-    """Get converter instance with current settings"""
-    ocr_config = {
-        "enabled": settings.docling_ocr_enabled,
-        "engine": settings.docling_ocr_engine,
-        "languages": settings.get_ocr_languages(),
-        "gpu": settings.docling_ocr_gpu,
-        "force_full_page": settings.docling_ocr_force_full_page,
-    }
-    
-    table_config = {
-        "mode": settings.docling_table_mode,
-        "cell_matching": settings.docling_table_cell_matching,
-    }
-    
-    vlm_config = settings.get_vlm_config()
-    
-    return DoclingConverterService(
-        pipeline_mode=settings.docling_pipeline_mode,
-        artifacts_path=str(settings.get_artifacts_path()),
-        ocr_config=ocr_config,
-        vlm_config=vlm_config,
-        table_config=table_config,
-    )
-
-
-converter = get_converter()
+# Initialize converter manager
+converter_manager = get_converter_manager()
 
 
 @router.post("/extract/tables", response_model=TableExtractionResult)
 async def extract_tables(
     file: UploadFile = File(...),
+    pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
 ):
     """
     Extract tables from document
@@ -54,6 +29,7 @@ async def extract_tables(
     
     Args:
         file: Document file (PDF, DOCX, etc.)
+        pipeline: Pipeline mode - "std" (standard) or "vlm"
     
     Returns:
         Table extraction results
@@ -67,6 +43,9 @@ async def extract_tables(
     temp_file_path = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Read file content
         file_content = await file.read()
         
@@ -116,6 +95,7 @@ async def extract_tables(
 @router.post("/chunk", response_model=ChunkResult)
 async def chunk_document(
     file: UploadFile = File(...),
+    pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
     chunk_size: int = Query(1000, description="Chunk size in characters"),
     chunk_overlap: int = Query(200, description="Overlap between chunks"),
 ):
@@ -126,6 +106,7 @@ async def chunk_document(
     
     Args:
         file: Document file
+        pipeline: Pipeline mode - "std" (standard) or "vlm"
         chunk_size: Maximum chunk size in characters
         chunk_overlap: Overlap between consecutive chunks
     
@@ -140,6 +121,9 @@ async def chunk_document(
     temp_file_path = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Read file content
         file_content = await file.read()
         
@@ -198,9 +182,10 @@ async def get_supported_formats():
     Returns lists of supported input and output formats
     """
     from app.services.archive_handler import ArchiveHandler
+    from app.services.converter import DoclingConverterService
     
     return FormatInfo(
-        input_formats=sorted(list(converter.get_supported_extensions())),
+        input_formats=sorted(list(DoclingConverterService.get_supported_extensions())),
         output_formats=["markdown", "html", "json", "doctags"],
         archive_formats=sorted(list(ArchiveHandler.ARCHIVE_EXTENSIONS)),
     )

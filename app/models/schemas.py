@@ -30,6 +30,7 @@ class ConversionResult(BaseModel):
         None,
         description="Document metadata (page count, tables, etc.)"
     )
+    pipeline_used: Optional[str] = Field(None, description="Pipeline used for conversion (std/vlm)")
 
 
 class TableExtractionResult(BaseModel):
@@ -56,11 +57,11 @@ class HealthResponse(BaseModel):
     """Health check response"""
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
-    pipeline_mode: str = Field(..., description="Current pipeline mode (standard/vlm)")
+    default_pipeline: str = Field(..., description="Default pipeline mode (std/vlm)")
     docling_version: Optional[str] = Field(None, description="Docling library version")
-    models_loaded: bool = Field(..., description="Whether models are loaded")
-    ocr_enabled: bool = Field(..., description="Whether OCR is enabled")
-    vlm_enabled: bool = Field(..., description="Whether VLM is enabled")
+    pipelines: Dict[str, Any] = Field(..., description="Status of available pipelines")
+    ocr_enabled: bool = Field(..., description="Whether OCR is enabled in standard pipeline")
+    vlm_enabled: bool = Field(..., description="Whether VLM pipeline is available")
 
 
 class PipelineConfig(BaseModel):

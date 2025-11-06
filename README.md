@@ -15,15 +15,16 @@
 
 ## 🚀 Features
 
-- **Dual Pipeline Modes**
-  - **Standard Pipeline**: Specialized AI models for layout analysis, table extraction, and OCR
-  - **VLM Pipeline**: Vision-Language Models for end-to-end document understanding
+- **Dual Pipeline Support (Simultaneous)**
+  - **Standard Pipeline (`std`)**: Specialized AI models for layout analysis, table extraction, and OCR
+  - **VLM Pipeline (`vlm`)**: Vision-Language Models for end-to-end document understanding
+  - **No configuration switching required** - select pipeline per request with `?pipeline=` parameter
   
 - **Advanced OCR Capabilities**
   - EasyOCR support (multi-language, GPU acceleration)
   - Tesseract integration
   - RapidOCR for high performance
-  - Automatic detection of scanned vs. digital PDFs
+  - Automatic detection of scanned vs. digital PDFs (auto/always/never modes)
 
 - **Intelligent Document Processing**
   - Layout analysis with RT-DETR
@@ -121,12 +122,20 @@ GET /ocr/docling/health
 ### 2. Upload File
 
 ```bash
-# Convert file to JSON
+# Convert file using standard pipeline (default)
 curl -X POST "http://localhost:8002/ocr/docling/upload" \
   -F "file=@document.pdf"
 
-# Convert file to MD
-curl -X POST "http://localhost:8002/ocr/docling/upload/md" \
+# Convert file using VLM pipeline
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=vlm" \
+  -F "file=@document.pdf"
+
+# Standard pipeline with specific OCR mode
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=std&ocr_mode=always" \
+  -F "file=@document.pdf"
+
+# Convert to MD file
+curl -X POST "http://localhost:8002/ocr/docling/upload/md?pipeline=std" \
   -F "file=@document.pdf" \
   -o output.md
 ```
@@ -134,7 +143,20 @@ curl -X POST "http://localhost:8002/ocr/docling/upload/md" \
 ### 3. Parse Base64
 
 ```bash
-curl -X POST "http://localhost:8002/ocr/docling/parse" \
+# Standard pipeline
+curl -X POST "http://localhost:8002/ocr/docling/parse?pipeline=std" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_base64_or_document": true,
+    "docs": [{
+      "filename": "document.pdf",
+      "data": "'$(base64 -w0 document.pdf)'",
+      "type": "application/pdf"
+    }]
+  }'
+
+# VLM pipeline
+curl -X POST "http://localhost:8002/ocr/docling/parse?pipeline=vlm" \
   -H "Content-Type: application/json" \
   -d '{
     "is_base64_or_document": true,
@@ -149,27 +171,58 @@ curl -X POST "http://localhost:8002/ocr/docling/parse" \
 ### 4. Extract Tables (Docling-Specific)
 
 ```bash
-curl -X POST "http://localhost:8002/ocr/docling/extract/tables" \
+# Standard pipeline
+curl -X POST "http://localhost:8002/ocr/docling/extract/tables?pipeline=std" \
+  -F "file=@document.pdf"
+
+# VLM pipeline
+curl -X POST "http://localhost:8002/ocr/docling/extract/tables?pipeline=vlm" \
   -F "file=@document.pdf"
 ```
 
 ### 5. Chunk for RAG (Docling-Specific)
 
 ```bash
-curl -X POST "http://localhost:8002/ocr/docling/chunk?chunk_size=1000&chunk_overlap=200" \
+# Standard pipeline
+curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=std&chunk_size=1000&chunk_overlap=200" \
+  -F "file=@document.pdf"
+
+# VLM pipeline
+curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=vlm&chunk_size=1000&chunk_overlap=200" \
   -F "file=@document.pdf"
 ```
 
-### 6. Pipeline Configuration (Docling-Specific)
+### 6. Pipeline Status (Docling-Specific)
 
 ```bash
-# Get current pipeline config
+# Get status of both pipelines
 curl http://localhost:8002/ocr/docling/pipeline
+```
 
-# Switch to VLM mode (requires VLM service)
-curl -X POST "http://localhost:8002/ocr/docling/pipeline" \
-  -H "Content-Type: application/json" \
-  -d '{"mode": "vlm"}'
+**Response:**
+```json
+{
+  "pipelines": {
+    "std": {
+      "name": "Standard Pipeline",
+      "available": true,
+      "loaded": true,
+      "ocr_enabled": true
+    },
+    "vlm": {
+      "name": "VLM Pipeline",
+      "available": true,
+      "loaded": false,
+      "enabled": true,
+      "model": "qwen/qwen3-vl-235b-a22b-instruct"
+    }
+  },
+  "usage": {
+    "info": "Both pipelines available simultaneously",
+    "parameter": "Use ?pipeline=std or ?pipeline=vlm on any endpoint",
+    "default": "std (standard pipeline)"
+  }
+}
 ```
 
 ## ⚙️ Configuration
@@ -177,46 +230,64 @@ curl -X POST "http://localhost:8002/ocr/docling/pipeline" \
 Edit `.env` file to configure:
 
 ```bash
-# Pipeline Mode
-DOCLING_PIPELINE_MODE=standard  # standard or vlm
-
-# OCR Configuration
+# OCR Configuration (Standard Pipeline)
 DOCLING_OCR_ENABLED=true
 DOCLING_OCR_ENGINE=easyocr
 DOCLING_OCR_LANGUAGES=en,ru
 DOCLING_OCR_GPU=false
 
-# VLM Configuration (for VLM mode)
-DOCLING_VLM_ENABLED=false
+# VLM Configuration (VLM Pipeline)
+DOCLING_VLM_ENABLED=true  # Enable VLM pipeline
 DOCLING_VLM_API_URL=http://localhost:8000/v1/chat/completions
-DOCLING_VLM_MODEL=qwen-vl-3b
+DOCLING_VLM_MODEL=qwen/qwen3-vl-235b-a22b-instruct
 
 # Table Processing
 DOCLING_TABLE_MODE=accurate  # fast or accurate
 ```
 
+**Note:** Both pipelines can be used simultaneously. Select pipeline per request using `?pipeline=std` or `?pipeline=vlm`.
+
 See `env.example` for all options.
 
 ## 🔍 Pipeline Modes
 
-### Standard Pipeline (Default)
+Both pipelines available simultaneously - no configuration switching required!
+
+### Standard Pipeline (`?pipeline=std`) - Default
 
 Uses specialized AI models:
 - **Layout Model**: RT-DETR for document structure
 - **TableFormer**: Table structure recognition
 - **OCR**: EasyOCR/Tesseract for text extraction
+  - `ocr_mode=auto` - Auto-detect if OCR needed (default)
+  - `ocr_mode=always` - Force OCR
+  - `ocr_mode=never` - Disable OCR
 - **Picture Classifier**: Image type detection
 
 **Best for**: Production use, offline/on-premise deployment, reliable performance
 
-### VLM Pipeline
+### VLM Pipeline (`?pipeline=vlm`)
 
 Uses Vision-Language Models for end-to-end processing:
 - Single model for entire document
-- Supports OpenAI-compatible APIs (vLLM, Ollama)
-- Models: Qwen-VL, Pixtral, Granite-Vision, etc.
+- Supports OpenAI-compatible APIs (vLLM, Ollama, OpenRouter)
+- Models: Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision, etc.
+- Default: `qwen/qwen3-vl-235b-a22b-instruct`
 
-**Best for**: Experimental use, custom models, specialized document types
+**Best for**: Complex documents, experimental use, custom models, specialized document types
+
+### Usage Examples
+
+```bash
+# Standard pipeline with auto OCR (default)
+curl -X POST "http://localhost:8002/ocr/docling/upload" -F "file=@doc.pdf"
+
+# Standard pipeline, force OCR
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=std&ocr_mode=always" -F "file=@doc.pdf"
+
+# VLM pipeline
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=vlm" -F "file=@doc.pdf"
+```
 
 ## 📥 Model Management
 

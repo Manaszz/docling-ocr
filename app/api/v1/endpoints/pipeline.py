@@ -3,8 +3,9 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.models.schemas import PipelineConfig
+from typing import Dict, Any
 from app.core.config import settings
+from app.services.converter_manager import get_converter_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -15,86 +16,63 @@ class OCRToggle(BaseModel):
     enabled: bool
 
 
-@router.get("", response_model=PipelineConfig)
-async def get_pipeline_config():
+@router.get("")
+async def get_pipeline_status() -> Dict[str, Any]:
     """
-    Get current pipeline configuration
+    Get current pipeline status
     
-    Returns information about the active pipeline mode and settings
+    Returns information about both pipeline modes and their availability.
+    Note: With dual pipeline support, you can use either pipeline via ?pipeline= parameter.
     """
-    return PipelineConfig(
-        mode=settings.docling_pipeline_mode,
-        ocr_enabled=settings.docling_ocr_enabled if settings.docling_pipeline_mode == "standard" else None,
-        ocr_engine=settings.docling_ocr_engine if settings.docling_pipeline_mode == "standard" else None,
-        ocr_languages=settings.get_ocr_languages() if settings.docling_pipeline_mode == "standard" else None,
-        vlm_enabled=settings.docling_vlm_enabled if settings.docling_pipeline_mode == "vlm" else None,
-        vlm_model=settings.docling_vlm_model if settings.docling_pipeline_mode == "vlm" else None,
-    )
-
-
-@router.post("", response_model=PipelineConfig)
-async def set_pipeline_config(config: PipelineConfig):
-    """
-    Set pipeline configuration
+    manager = get_converter_manager()
+    status = manager.get_status()
     
-    Note: This changes the configuration for the current instance only.
-    For permanent changes, modify the .env file.
-    
-    Args:
-        config: New pipeline configuration
-    
-    Returns:
-        Updated pipeline configuration
-    """
-    if config.mode not in ["standard", "vlm"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Pipeline mode must be 'standard' or 'vlm'"
-        )
-    
-    # Update settings
-    settings.docling_pipeline_mode = config.mode
-    
-    if config.ocr_enabled is not None:
-        settings.docling_ocr_enabled = config.ocr_enabled
-    
-    if config.ocr_engine is not None:
-        settings.docling_ocr_engine = config.ocr_engine
-    
-    if config.vlm_enabled is not None:
-        settings.docling_vlm_enabled = config.vlm_enabled
-    
-    if config.vlm_model is not None:
-        settings.docling_vlm_model = config.vlm_model
-    
-    logger.info(f"Pipeline configuration updated to {config.mode} mode")
-    
-    # Note: Converter needs to be reinitialized for changes to take effect
-    # This would require a service restart in production
-    
-    return await get_pipeline_config()
+    return {
+        "pipelines": {
+            "std": {
+                "name": "Standard Pipeline",
+                "available": status["standard"]["available"],
+                "loaded": status["standard"]["loaded"],
+                "ocr_enabled": settings.docling_ocr_enabled,
+                "ocr_engine": settings.docling_ocr_engine,
+                "ocr_languages": settings.get_ocr_languages(),
+            },
+            "vlm": {
+                "name": "VLM Pipeline",
+                "available": status["vlm"]["available"],
+                "loaded": status["vlm"]["loaded"],
+                "enabled": status["vlm"]["enabled"],
+                "model": status["vlm"]["model"],
+            }
+        },
+        "usage": {
+            "info": "Both pipelines available simultaneously",
+            "parameter": "Use ?pipeline=std or ?pipeline=vlm on any endpoint",
+            "default": "std (standard pipeline)"
+        }
+    }
 
 
 @router.post("/ocr/toggle")
 async def toggle_ocr(toggle: OCRToggle):
     """
-    Toggle OCR on/off
+    Toggle OCR on/off for standard pipeline
     
     Args:
         toggle: OCR toggle request
     
     Returns:
         Current OCR status
+    
+    Note: Changes affect new converter instances. Already loaded converters not affected.
     """
     settings.docling_ocr_enabled = toggle.enabled
     
     logger.info(f"OCR {'enabled' if toggle.enabled else 'disabled'} via API")
     
-    # Note: Service restart required for changes to take full effect
-    
     return {
         "ocr_enabled": settings.docling_ocr_enabled,
-        "message": f"OCR {'enabled' if toggle.enabled else 'disabled'}. Service restart recommended.",
-        "restart_required": True
+        "message": f"OCR {'enabled' if toggle.enabled else 'disabled'} for standard pipeline.",
+        "note": "Affects new requests only. Service restart recommended for full effect."
     }
 

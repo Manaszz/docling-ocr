@@ -11,46 +11,21 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 from app.core.config import settings
 from app.models.schemas import ParseRequest, ConversionResult
-from app.services.converter import DoclingConverterService
+from app.services.converter_manager import get_converter_manager
 from app.services.archive_handler import ArchiveHandler
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Initialize services
-def get_converter():
-    """Get converter instance with current settings"""
-    ocr_config = {
-        "enabled": settings.docling_ocr_enabled,
-        "engine": settings.docling_ocr_engine,
-        "languages": settings.get_ocr_languages(),
-        "gpu": settings.docling_ocr_gpu,
-        "force_full_page": settings.docling_ocr_force_full_page,
-    }
-    
-    table_config = {
-        "mode": settings.docling_table_mode,
-        "cell_matching": settings.docling_table_cell_matching,
-    }
-    
-    vlm_config = settings.get_vlm_config()
-    
-    return DoclingConverterService(
-        pipeline_mode=settings.docling_pipeline_mode,
-        artifacts_path=str(settings.get_artifacts_path()),
-        ocr_config=ocr_config,
-        vlm_config=vlm_config,
-        table_config=table_config,
-    )
-
-
-converter = get_converter()
+converter_manager = get_converter_manager()
 archive_handler = ArchiveHandler()
 
 
 @router.post("/parse", response_model=List[ConversionResult])
 async def parse_documents(
     request: ParseRequest,
+    pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
 ):
     """
     Parse base64-encoded documents and convert to Markdown (JSON response)
@@ -60,11 +35,15 @@ async def parse_documents(
     
     Args:
         request: Parse request with base64-encoded documents
+        pipeline: Pipeline mode - "std" (standard) or "vlm"
     
     Returns:
         List of conversion results as JSON
     """
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         results = []
         
         for doc in request.docs:
@@ -78,7 +57,8 @@ async def parse_documents(
                         file_name=doc.filename,
                         file_extension=doc.type,
                         file_text="",
-                        error=f"File too large. Max size: {settings.max_upload_size} bytes"
+                        error=f"File too large. Max size: {settings.max_upload_size} bytes",
+                        pipeline_used=pipeline,
                     ))
                     continue
                 
@@ -89,7 +69,8 @@ async def parse_documents(
                         # Process archive
                         archive_results = await _process_archive_bytes_json(
                             file_bytes,
-                            doc.filename
+                            doc.filename,
+                            pipeline
                         )
                         results.extend(archive_results)
                     else:
@@ -97,7 +78,8 @@ async def parse_documents(
                             file_name=doc.filename,
                             file_extension=doc.type,
                             file_text="",
-                            error=f"Unsupported file format: {doc.filename}"
+                            error=f"Unsupported file format: {doc.filename}",
+                            pipeline_used=pipeline,
                         ))
                     continue
                 
@@ -114,6 +96,7 @@ async def parse_documents(
                     file_extension=doc.type,
                     file_text=result_data["text"],
                     metadata=result_data.get("metadata"),
+                    pipeline_used=pipeline,
                 ))
                 
             except Exception as e:
@@ -135,6 +118,7 @@ async def parse_documents(
 @router.post("/parse/md")
 async def parse_documents_md(
     request: ParseRequest,
+    pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
     structured: bool = Query(
         False,
         description="Preserve folder structure in archives"
@@ -147,12 +131,16 @@ async def parse_documents_md(
     
     Args:
         request: Parse request with base64-encoded documents
+        pipeline: Pipeline mode - "std" (standard) or "vlm"
         structured: Preserve folder structure in archives (default: false)
     
     Returns:
         MD file or ZIP archive with MD files
     """
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         output_files = []
         
         for doc in request.docs:
@@ -172,6 +160,7 @@ async def parse_documents_md(
                         archive_files = await _process_archive_bytes_md(
                             file_bytes,
                             doc.filename,
+                            pipeline,
                             structured
                         )
                         output_files.extend(archive_files)
@@ -252,13 +241,17 @@ async def parse_documents_md(
 
 async def _process_archive_bytes_json(
     archive_bytes: bytes,
-    filename: str
+    filename: str,
+    pipeline: str
 ) -> List[ConversionResult]:
     """Process archive from bytes and return JSON results"""
     
     extract_dir = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Save archive to temp file
         with tempfile.NamedTemporaryFile(
             suffix=Path(filename).suffix,
@@ -288,7 +281,8 @@ async def _process_archive_bytes_json(
                 file_name=filename,
                 file_extension=Path(filename).suffix,
                 file_text="",
-                error="No supported files found in archive"
+                error="No supported files found in archive",
+                pipeline_used=pipeline,
             )]
         
         # Convert all files
@@ -304,6 +298,7 @@ async def _process_archive_bytes_json(
                     file_extension=file_path.suffix,
                     file_text=result_data["text"],
                     metadata=result_data.get("metadata"),
+                    pipeline_used=pipeline,
                 ))
             except Exception as e:
                 logger.error(f"Error converting {file_path}: {e}")
@@ -311,7 +306,8 @@ async def _process_archive_bytes_json(
                     file_name=str(file_path.relative_to(extract_dir)),
                     file_extension=file_path.suffix,
                     file_text="",
-                    error=str(e)
+                    error=str(e),
+                    pipeline_used=pipeline,
                 ))
         
         return results
@@ -329,6 +325,7 @@ async def _process_archive_bytes_json(
 async def _process_archive_bytes_md(
     archive_bytes: bytes,
     filename: str,
+    pipeline: str,
     structured: bool
 ) -> List[tuple]:
     """Process archive from bytes and return list of (path, filename) tuples"""
@@ -337,6 +334,9 @@ async def _process_archive_bytes_md(
     output_dir = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Save archive to temp file
         with tempfile.NamedTemporaryFile(
             suffix=Path(filename).suffix,

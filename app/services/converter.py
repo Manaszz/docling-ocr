@@ -17,6 +17,8 @@ from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
 from docling.pipeline.vlm_pipeline import VlmPipeline
 from docling.datamodel.pipeline_options_vlm_model import ApiVlmOptions, ResponseFormat
 
+from app.utils.unicode_fixer import fix_unicode_codes
+
 logger = logging.getLogger(__name__)
 
 
@@ -204,6 +206,10 @@ class DoclingConverterService:
             else:
                 # Default to markdown
                 text = result.document.export_to_markdown()
+            
+            # Fix Unicode codes (e.g., /uni043F -> п)
+            # This fixes a common issue with Cyrillic text in PDFs with embedded fonts
+            text = fix_unicode_codes(text)
             
             # Extract metadata
             metadata = self._extract_metadata(result)

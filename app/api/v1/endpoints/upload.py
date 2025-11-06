@@ -10,46 +10,21 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 from app.core.config import settings
 from app.models.schemas import ConversionResult
-from app.services.converter import DoclingConverterService
+from app.services.converter_manager import get_converter_manager
 from app.services.archive_handler import ArchiveHandler
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Initialize services
-def get_converter():
-    """Get converter instance with current settings"""
-    ocr_config = {
-        "enabled": settings.docling_ocr_enabled,
-        "engine": settings.docling_ocr_engine,
-        "languages": settings.get_ocr_languages(),
-        "gpu": settings.docling_ocr_gpu,
-        "force_full_page": settings.docling_ocr_force_full_page,
-    }
-    
-    table_config = {
-        "mode": settings.docling_table_mode,
-        "cell_matching": settings.docling_table_cell_matching,
-    }
-    
-    vlm_config = settings.get_vlm_config()
-    
-    return DoclingConverterService(
-        pipeline_mode=settings.docling_pipeline_mode,
-        artifacts_path=str(settings.get_artifacts_path()),
-        ocr_config=ocr_config,
-        vlm_config=vlm_config,
-        table_config=table_config,
-    )
-
-
-converter = get_converter()
+converter_manager = get_converter_manager()
 archive_handler = ArchiveHandler()
 
 
 @router.post("/upload", response_model=List[ConversionResult])
 async def upload_file(
     file: UploadFile = File(...),
+    pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
     ocr_mode: str = Query("auto", description="OCR mode: auto (detect), always, never"),
 ):
     """
@@ -59,14 +34,18 @@ async def upload_file(
     
     Args:
         file: File to convert
-        ocr_mode: OCR mode - "auto" (auto-detect for PDFs), "always", or "never"
+        pipeline: Pipeline mode - "std" (standard) or "vlm" (Vision-Language Model)
+        ocr_mode: OCR mode - "auto" (auto-detect for PDFs), "always", or "never" (only for std pipeline)
     
     Returns:
-        List of conversion results with OCR usage info
+        List of conversion results with pipeline and OCR usage info
     """
     temp_file_path = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Read file content
         file_content = await file.read()
         
@@ -88,14 +67,22 @@ async def upload_file(
         
         # Check if it's an archive
         if archive_handler.is_archive(file.filename):
-            results = await _process_archive_json(temp_file_path, file.filename, ocr_mode)
+            results = await _process_archive_json(temp_file_path, file.filename, pipeline, ocr_mode)
         elif converter.is_supported_file(file.filename):
-            # Convert single file with auto OCR detection
-            result_data = converter.convert_with_auto_ocr(
-                temp_file_path,
-                output_format=settings.default_output_format,
-                ocr_mode=ocr_mode
-            )
+            # Convert single file
+            if pipeline == "std" and ocr_mode != "auto":
+                # Use auto OCR detection for standard pipeline
+                result_data = converter.convert_with_auto_ocr(
+                    temp_file_path,
+                    output_format=settings.default_output_format,
+                    ocr_mode=ocr_mode
+                )
+            else:
+                # Standard conversion
+                result_data = converter.convert_file(
+                    temp_file_path,
+                    output_format=settings.default_output_format
+                )
             
             # Add OCR info to metadata
             metadata = result_data.get("metadata", {})
@@ -109,6 +96,7 @@ async def upload_file(
                 file_extension=suffix,
                 file_text=result_data["text"],
                 metadata=metadata,
+                pipeline_used=pipeline,
             )]
         else:
             raise HTTPException(
@@ -136,6 +124,7 @@ async def upload_file(
 @router.post("/upload/md")
 async def upload_file_md(
     file: UploadFile = File(...),
+    pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
     structured: bool = Query(
         False,
         description="Preserve folder structure in archives"
@@ -148,6 +137,7 @@ async def upload_file_md(
     
     Args:
         file: File to convert
+        pipeline: Pipeline mode - "std" (standard) or "vlm"
         structured: Preserve folder structure in archives
     
     Returns:
@@ -156,6 +146,9 @@ async def upload_file_md(
     temp_file_path = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Read file content
         file_content = await file.read()
         
@@ -177,7 +170,7 @@ async def upload_file_md(
         
         # Check if it's an archive
         if archive_handler.is_archive(file.filename):
-            return await _process_archive_md(temp_file_path, file.filename, structured)
+            return await _process_archive_md(temp_file_path, file.filename, pipeline, structured)
         
         elif converter.is_supported_file(file.filename):
             # Convert single file
@@ -227,6 +220,7 @@ async def upload_file_md(
 async def _process_archive_json(
     archive_path: Path,
     filename: str,
+    pipeline: str = "std",
     ocr_mode: str = "auto"
 ) -> List[ConversionResult]:
     """Process archive and return JSON results"""
@@ -234,6 +228,9 @@ async def _process_archive_json(
     extract_dir = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Extract archive
         extract_dir = Path(tempfile.mkdtemp(prefix='extract_'))
         archive_handler.extract_archive(
@@ -255,18 +252,25 @@ async def _process_archive_json(
                 file_name=filename,
                 file_extension=Path(filename).suffix,
                 file_text="",
-                error="No supported files found in archive"
+                error="No supported files found in archive",
+                pipeline_used=pipeline,
             )]
         
         # Convert all files
         results = []
         for file_path in files:
             try:
-                result_data = converter.convert_with_auto_ocr(
-                    file_path,
-                    output_format=settings.default_output_format,
-                    ocr_mode=ocr_mode
-                )
+                if pipeline == "std" and ocr_mode != "auto":
+                    result_data = converter.convert_with_auto_ocr(
+                        file_path,
+                        output_format=settings.default_output_format,
+                        ocr_mode=ocr_mode
+                    )
+                else:
+                    result_data = converter.convert_file(
+                        file_path,
+                        output_format=settings.default_output_format
+                    )
                 
                 # Add OCR info to metadata
                 metadata = result_data.get("metadata", {})
@@ -280,6 +284,7 @@ async def _process_archive_json(
                     file_extension=file_path.suffix,
                     file_text=result_data["text"],
                     metadata=metadata,
+                    pipeline_used=pipeline,
                 ))
             except Exception as e:
                 logger.error(f"Error converting {file_path}: {e}")
@@ -287,7 +292,8 @@ async def _process_archive_json(
                     file_name=str(file_path.relative_to(extract_dir)),
                     file_extension=file_path.suffix,
                     file_text="",
-                    error=str(e)
+                    error=str(e),
+                    pipeline_used=pipeline,
                 ))
         
         return results
@@ -301,6 +307,7 @@ async def _process_archive_json(
 async def _process_archive_md(
     archive_path: Path,
     filename: str,
+    pipeline: str,
     structured: bool
 ):
     """Process archive and return as ZIP of MD files"""
@@ -309,6 +316,9 @@ async def _process_archive_md(
     output_dir = None
     
     try:
+        # Get converter for specified pipeline
+        converter = converter_manager.get_converter(pipeline)
+        
         # Extract archive
         extract_dir = Path(tempfile.mkdtemp(prefix='extract_'))
         archive_handler.extract_archive(

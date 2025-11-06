@@ -54,13 +54,10 @@ RUN mkdir -p /app/temp /app/models /app/logs
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Create non-root user
-RUN useradd -m -u 1000 docling && \
-    chown -R docling:docling /app && \
-    chmod -R 755 /root/.local && \
-    chmod -R a+x /root/.local/bin
-
-USER docling
+# Create non-root user (commented out for compatibility with /root/.local)
+# RUN useradd -m -u 1000 docling && \
+#     chown -R docling:docling /app
+# USER docling
 
 # Expose port
 EXPOSE 8002
@@ -70,5 +67,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8002/ocr/docling/health || exit 1
 
 # Run application with environment variable support
-CMD ["/bin/sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers ${WORKERS:-4}"]
+CMD ["/bin/sh", "-c", "/root/.local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers ${WORKERS:-4}"]
 
