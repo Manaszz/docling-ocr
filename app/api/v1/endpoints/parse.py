@@ -26,23 +26,25 @@ archive_handler = ArchiveHandler()
 async def parse_documents(
     request: ParseRequest,
     pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
+    vlm_prompt: str = Query(None, description="Custom prompt for VLM pipeline (optional)"),
 ):
     """
     Parse base64-encoded documents and convert to Markdown (JSON response)
-    
+
     Accepts multiple documents in base64 format and returns converted text.
     Supports both single files and archives.
-    
+
     Args:
         request: Parse request with base64-encoded documents
         pipeline: Pipeline mode - "std" (standard) or "vlm"
-    
+        vlm_prompt: Custom prompt for VLM pipeline (optional, overrides default)
+
     Returns:
         List of conversion results as JSON
     """
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         results = []
         
@@ -139,7 +141,7 @@ async def parse_documents_md(
     """
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         output_files = []
         
@@ -250,7 +252,7 @@ async def _process_archive_bytes_json(
     
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         # Save archive to temp file
         with tempfile.NamedTemporaryFile(
@@ -335,7 +337,7 @@ async def _process_archive_bytes_md(
     
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         # Save archive to temp file
         with tempfile.NamedTemporaryFile(

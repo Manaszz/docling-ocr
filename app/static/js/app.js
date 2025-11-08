@@ -199,10 +199,19 @@ async function uploadFiles() {
         // Check if table extraction is requested
         const extractTablesCheckbox = document.getElementById('extractTables');
         const extractTables = extractTablesCheckbox && extractTablesCheckbox.checked;
-        
+
+        // Get VLM prompt
+        const vlmPromptElement = document.getElementById('vlmPrompt');
+        const vlmPrompt = vlmPromptElement ? vlmPromptElement.value.trim() : '';
+
         const formData = new FormData();
         formData.append('file', files[0]);
-        
+
+        // Add VLM prompt if provided
+        if (vlmPrompt) {
+            formData.append('vlm_prompt', vlmPrompt);
+        }
+
         // Use appropriate endpoint
         const endpoint = extractTables ? '/extract/tables' : '/upload';
         

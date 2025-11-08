@@ -1,0 +1,339 @@
+# Cursor Rules: Docling OCR API
+# Version: 1.0.0
+# Last Updated: November 6, 2025
+
+## Project Intelligence & Patterns
+
+### Core Project Identity
+- **Purpose**: AI-powered document conversion API with MiD-OCR compatibility
+- **Architecture**: FastAPI-based REST service with dual pipeline support
+- **Target Users**: Data engineers, IT admins, content managers needing document processing
+- **Key Value**: On-premise document conversion with advanced AI capabilities
+
+### Critical Implementation Patterns
+
+#### 1. API Response Consistency
+**Pattern**: All endpoints return consistent response structures
+```python
+# Success Response
+{
+  "content": "markdown_content",
+  "metadata": {
+    "page_count": 5,
+    "tables_count": 2,
+    "processing_time": 2.34
+  },
+  "success": true
+}
+
+# Error Response
+{
+  "detail": "Error description",
+  "error_type": "CONVERSION_ERROR",
+  "pipeline": "std"
+}
+```
+**Why**: Maintains API predictability and client compatibility
+
+#### 2. Pipeline Selection Pattern
+**Pattern**: Use `?pipeline=std` or `?pipeline=vlm` for pipeline selection
+```python
+@app.post("/upload")
+async def upload_file(
+    pipeline: str = Query("std", regex="^(std|vlm)$"),
+    # ... other parameters
+):
+```
+**Why**: Enables dual pipeline support without breaking MiD-OCR compatibility
+
+#### 3. Error Handling Hierarchy
+**Pattern**: Catch exceptions at service layer, convert to HTTP exceptions at API layer
+```python
+# Service layer
+try:
+    result = await converter.convert(document)
+except ConversionError as e:
+    logger.error(f"Conversion failed: {e}")
+    raise
+
+# API layer
+except ConversionError as e:
+    raise HTTPException(status_code=500, detail=str(e))
+```
+**Why**: Clean separation of concerns and consistent error responses
+
+#### 4. Configuration Validation
+**Pattern**: Use Pydantic settings with environment variable validation
+```python
+class Settings(BaseSettings):
+    api_prefix: str = "/ocr/docling"
+    docling_ocr_enabled: bool = True
+    docling_vlm_enabled: bool = False
+
+    @validator('docling_artifacts_path')
+    def validate_artifacts_path(cls, v):
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f"Artifacts path does not exist: {v}")
+        return v
+```
+**Why**: Type safety, validation, and self-documenting configuration
+
+### Development Workflow Patterns
+
+#### 1. Git Commit Standards
+**Pattern**: Clear, imperative commit messages with context
+```
+# Good commits
+feat: add VLM pipeline support with OpenAI integration
+fix: handle encoding errors in PDF text extraction
+docs: update API documentation for new endpoints
+
+# Avoid
+update files
+fix bug
+```
+**Why**: Maintains clear project history and release notes
+
+#### 2. Code Organization
+**Pattern**: Logical module separation with clear responsibilities
+```
+app/
+├── main.py              # Application entry point
+├── core/config.py       # Configuration management
+├── api/v1/endpoints/    # API route handlers
+├── services/            # Business logic
+├── models/schemas.py    # Data models
+└── utils/               # Shared utilities
+```
+**Why**: Maintainable, testable, and scalable architecture
+
+#### 3. Testing Approach
+**Pattern**: Unit tests for services, integration tests for APIs
+```python
+# Unit test example
+def test_converter_initialization():
+    settings = Settings()
+    converter = StandardConverter(settings)
+    assert converter.settings == settings
+
+# Integration test example
+async def test_upload_endpoint(client):
+    response = await client.post("/upload", files={"file": test_file})
+    assert response.status_code == 200
+    data = response.json()
+    assert "content" in data
+```
+**Why**: Ensures reliability and prevents regressions
+
+### Common Pitfalls to Avoid
+
+#### 1. File Path Handling
+**Avoid**: Direct string concatenation for paths
+```python
+# Bad
+temp_path = settings.temp_dir + "/" + filename
+
+# Good
+temp_path = Path(settings.temp_dir) / filename
+```
+**Why**: Cross-platform compatibility and security
+
+#### 2. Memory Management
+**Avoid**: Loading entire files into memory unnecessarily
+```python
+# Consider streaming for large files
+with open(file_path, 'rb') as f:
+    # Process in chunks if possible
+```
+**Why**: Prevents memory exhaustion with large documents
+
+#### 3. External Dependencies
+**Avoid**: Making external API calls without timeout and error handling
+```python
+# Good
+async with httpx.AsyncClient(timeout=30.0) as client:
+    response = await client.post(url, json=data)
+    response.raise_for_status()
+```
+**Why**: Robust error handling and resource management
+
+### Performance Considerations
+
+#### 1. Async/Await Usage
+**Pattern**: Use async for I/O operations, sync for CPU-bound tasks
+```python
+# Async for I/O
+async def convert_document(self, file_path: str):
+    async with aiofiles.open(file_path, 'rb') as f:
+        content = await f.read()
+
+# Sync for CPU processing (in thread pool if needed)
+def process_text(self, text: str) -> str:
+    # CPU-intensive text processing
+```
+**Why**: Optimal resource utilization
+
+#### 2. Resource Cleanup
+**Pattern**: Use context managers for resource management
+```python
+async def process_file(self, file_path: str):
+    temp_dir = Path(settings.temp_dir)
+    with tempfile.TemporaryDirectory(dir=temp_dir) as work_dir:
+        # Process files in work_dir
+        # Automatic cleanup on exit
+```
+**Why**: Prevents resource leaks
+
+### Documentation Standards
+
+#### 1. Code Documentation
+**Pattern**: Docstrings for all public functions and classes
+```python
+class ConverterService:
+    """Service for converting documents using Docling.
+
+    Handles document conversion with support for multiple pipelines
+    and output formats.
+    """
+
+    async def convert(
+        self,
+        file_path: str,
+        pipeline: str = "std"
+    ) -> ConversionResult:
+        """Convert document to markdown.
+
+        Args:
+            file_path: Path to document file
+            pipeline: Pipeline to use ('std' or 'vlm')
+
+        Returns:
+            ConversionResult with content and metadata
+        """
+```
+**Why**: Self-documenting code and IDE support
+
+#### 2. API Documentation
+**Pattern**: Comprehensive endpoint documentation
+```python
+@app.post(
+    "/upload",
+    summary="Upload and convert document",
+    description="Convert uploaded document to markdown using specified pipeline",
+    response_model=ConversionResponse,
+    responses={
+        200: {"description": "Successful conversion"},
+        400: {"description": "Invalid file or parameters"},
+        500: {"description": "Conversion failed"}
+    }
+)
+```
+**Why**: Clear API contracts and auto-generated documentation
+
+### Deployment Patterns
+
+#### 1. Environment Configuration
+**Pattern**: Environment-specific settings with validation
+```bash
+# Development
+export LOG_LEVEL=DEBUG
+export DOCLING_OCR_GPU=false
+
+# Production
+export LOG_LEVEL=INFO
+export DOCLING_OCR_GPU=true
+```
+**Why**: Consistent configuration across environments
+
+#### 2. Health Check Standards
+**Pattern**: Comprehensive health endpoint
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "pipelines": {
+    "std": {"available": true, "loaded": true},
+    "vlm": {"available": true, "loaded": false}
+  },
+  "models_loaded": true,
+  "memory_usage": "2.3GB"
+}
+```
+**Why**: Enables monitoring and automated health checks
+
+### Security Patterns
+
+#### 1. Input Validation
+**Pattern**: Validate all inputs at API boundaries
+```python
+def validate_file(file: UploadFile) -> None:
+    # Check file size
+    if file.size > settings.max_file_size:
+        raise HTTPException(400, "File too large")
+
+    # Check file type
+    if not is_allowed_type(file.content_type):
+        raise HTTPException(400, "Unsupported file type")
+```
+**Why**: Prevents malicious uploads and resource exhaustion
+
+#### 2. Safe File Operations
+**Pattern**: Secure temporary file handling
+```python
+import tempfile
+import os
+
+def safe_process_file(upload_file: UploadFile):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=upload_file.filename) as tmp:
+        # Write uploaded content safely
+        shutil.copyfileobj(upload_file.file, tmp)
+        tmp_path = tmp.name
+
+    try:
+        # Process file
+        result = process_document(tmp_path)
+        return result
+    finally:
+        # Always cleanup
+        os.unlink(tmp_path)
+```
+**Why**: Prevents temporary file attacks and ensures cleanup
+
+### Learning from Experience
+
+#### Key Insights
+1. **API Compatibility is Critical**: Users expect drop-in replacement capability
+2. **Resource Management Matters**: Document processing requires careful memory management
+3. **Cross-Platform Testing**: File handling differs significantly across platforms
+4. **Documentation Investment**: Well-documented features require less support
+5. **Pipeline Flexibility**: Users appreciate choice between speed and accuracy
+6. **Health Monitoring**: Comprehensive health checks enable reliable operations
+
+#### Technical Debt Areas
+1. **VLM Pipeline**: Requires external service integration testing
+2. **Memory Optimization**: Large document processing could be optimized
+3. **Windows Compatibility**: Additional testing needed for Windows deployments
+4. **GPU Management**: Concurrent GPU processing could be improved
+
+### Future Development Guidelines
+
+#### Feature Addition Checklist
+- [ ] Maintains MiD-OCR API compatibility
+- [ ] Includes comprehensive error handling
+- [ ] Has appropriate logging and monitoring
+- [ ] Includes unit and integration tests
+- [ ] Updates documentation and examples
+- [ ] Considers performance and resource implications
+- [ ] Works across all deployment platforms
+
+#### Code Review Criteria
+- [ ] Follows established patterns and conventions
+- [ ] Includes appropriate error handling
+- [ ] Has meaningful variable and function names
+- [ ] Includes docstrings for public interfaces
+- [ ] Maintains backward compatibility
+- [ ] Includes tests for new functionality
+
+This `.cursorrules` file captures the essential patterns, preferences, and intelligence accumulated during Docling OCR development. Use it as a reference for maintaining consistency and quality in future development work.
+

@@ -240,6 +240,7 @@ DOCLING_OCR_GPU=false
 DOCLING_VLM_ENABLED=true  # Enable VLM pipeline
 DOCLING_VLM_API_URL=http://localhost:8000/v1/chat/completions
 DOCLING_VLM_MODEL=qwen/qwen3-vl-235b-a22b-instruct
+DOCLING_VLM_PROMPT=Convert this document page to markdown format.
 
 # Table Processing
 DOCLING_TABLE_MODE=accurate  # fast or accurate
@@ -273,6 +274,7 @@ Uses Vision-Language Models for end-to-end processing:
 - Supports OpenAI-compatible APIs (vLLM, Ollama, OpenRouter)
 - Models: Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision, etc.
 - Default: `qwen/qwen3-vl-235b-a22b-instruct`
+- Customizable prompts: Use `?vlm_prompt=custom prompt` for specialized instructions
 
 **Best for**: Complex documents, experimental use, custom models, specialized document types
 
@@ -287,6 +289,9 @@ curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=std&ocr_mode=alw
 
 # VLM pipeline
 curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=vlm" -F "file=@doc.pdf"
+
+# VLM pipeline with custom prompt
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=vlm&vlm_prompt=Extract all text and tables from this document in structured markdown format." -F "file=@doc.pdf"
 ```
 
 ## 📥 Model Management

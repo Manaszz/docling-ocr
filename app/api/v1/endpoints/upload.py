@@ -26,17 +26,19 @@ async def upload_file(
     file: UploadFile = File(...),
     pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
     ocr_mode: str = Query("auto", description="OCR mode: auto (detect), always, never"),
+    vlm_prompt: str = Query(None, description="Custom prompt for VLM pipeline (optional)"),
 ):
     """
     Upload and convert file to Markdown (JSON response)
-    
+
     Accepts single file or archive. Returns conversion results as JSON.
-    
+
     Args:
         file: File to convert
         pipeline: Pipeline mode - "std" (standard) or "vlm" (Vision-Language Model)
         ocr_mode: OCR mode - "auto" (auto-detect for PDFs), "always", or "never" (only for std pipeline)
-    
+        vlm_prompt: Custom prompt for VLM pipeline (optional, overrides default)
+
     Returns:
         List of conversion results with pipeline and OCR usage info
     """
@@ -44,7 +46,7 @@ async def upload_file(
     
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         # Read file content
         file_content = await file.read()
@@ -67,30 +69,22 @@ async def upload_file(
         
         # Check if it's an archive
         if archive_handler.is_archive(file.filename):
-            results = await _process_archive_json(temp_file_path, file.filename, pipeline, ocr_mode)
+            results = await _process_archive_json(temp_file_path, file.filename, pipeline, ocr_mode, vlm_prompt)
         elif converter.is_supported_file(file.filename):
             # Convert single file
-            if pipeline == "std" and ocr_mode != "auto":
-                # Use auto OCR detection for standard pipeline
-                result_data = converter.convert_with_auto_ocr(
-                    temp_file_path,
-                    output_format=settings.default_output_format,
-                    ocr_mode=ocr_mode
-                )
-            else:
-                # Standard conversion
-                result_data = converter.convert_file(
-                    temp_file_path,
-                    output_format=settings.default_output_format
-                )
-            
+            result_data = converter.convert_with_auto_ocr(
+                temp_file_path,
+                output_format=settings.default_output_format,
+                ocr_mode=ocr_mode
+            )
+
             # Add OCR info to metadata
             metadata = result_data.get("metadata", {})
             if "ocr_used" in result_data:
                 metadata["ocr_used"] = result_data["ocr_used"]
             if "pdf_info" in result_data:
                 metadata["pdf_info"] = result_data["pdf_info"]
-            
+
             results = [ConversionResult(
                 file_name=file.filename,
                 file_extension=suffix,
@@ -128,18 +122,20 @@ async def upload_file_md(
     structured: bool = Query(
         False,
         description="Preserve folder structure in archives"
-    )
+    ),
+    vlm_prompt: str = Query(None, description="Custom prompt for VLM pipeline (optional)"),
 ):
     """
     Upload and convert file - return as MD file(s)
-    
+
     Returns single .md file or .zip archive with multiple MD files.
-    
+
     Args:
         file: File to convert
         pipeline: Pipeline mode - "std" (standard) or "vlm"
         structured: Preserve folder structure in archives
-    
+        vlm_prompt: Custom prompt for VLM pipeline (optional, overrides default)
+
     Returns:
         MD file or ZIP archive
     """
@@ -147,7 +143,7 @@ async def upload_file_md(
     
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         # Read file content
         file_content = await file.read()
@@ -170,13 +166,14 @@ async def upload_file_md(
         
         # Check if it's an archive
         if archive_handler.is_archive(file.filename):
-            return await _process_archive_md(temp_file_path, file.filename, pipeline, structured)
+            return await _process_archive_md(temp_file_path, file.filename, pipeline, structured, vlm_prompt)
         
         elif converter.is_supported_file(file.filename):
             # Convert single file
-            result_data = converter.convert_file(
+            result_data = converter.convert_with_auto_ocr(
                 temp_file_path,
-                output_format="markdown"
+                output_format="markdown",
+                ocr_mode="auto"  # Default to auto for MD endpoint
             )
             
             # Save to temporary MD file
@@ -221,7 +218,8 @@ async def _process_archive_json(
     archive_path: Path,
     filename: str,
     pipeline: str = "std",
-    ocr_mode: str = "auto"
+    ocr_mode: str = "auto",
+    vlm_prompt: str = None
 ) -> List[ConversionResult]:
     """Process archive and return JSON results"""
     
@@ -229,7 +227,7 @@ async def _process_archive_json(
     
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         # Extract archive
         extract_dir = Path(tempfile.mkdtemp(prefix='extract_'))
@@ -260,25 +258,20 @@ async def _process_archive_json(
         results = []
         for file_path in files:
             try:
-                if pipeline == "std" and ocr_mode != "auto":
-                    result_data = converter.convert_with_auto_ocr(
-                        file_path,
-                        output_format=settings.default_output_format,
-                        ocr_mode=ocr_mode
-                    )
-                else:
-                    result_data = converter.convert_file(
-                        file_path,
-                        output_format=settings.default_output_format
-                    )
-                
+                # Always use convert_with_auto_ocr for consistent result structure
+                result_data = converter.convert_with_auto_ocr(
+                    file_path,
+                    output_format=settings.default_output_format,
+                    ocr_mode=ocr_mode
+                )
+
                 # Add OCR info to metadata
                 metadata = result_data.get("metadata", {})
                 if "ocr_used" in result_data:
                     metadata["ocr_used"] = result_data["ocr_used"]
                 if "pdf_info" in result_data:
                     metadata["pdf_info"] = result_data["pdf_info"]
-                
+
                 results.append(ConversionResult(
                     file_name=str(file_path.relative_to(extract_dir)),
                     file_extension=file_path.suffix,
@@ -308,7 +301,8 @@ async def _process_archive_md(
     archive_path: Path,
     filename: str,
     pipeline: str,
-    structured: bool
+    structured: bool,
+    vlm_prompt: str = None
 ):
     """Process archive and return as ZIP of MD files"""
     
@@ -317,7 +311,7 @@ async def _process_archive_md(
     
     try:
         # Get converter for specified pipeline
-        converter = converter_manager.get_converter(pipeline)
+        converter = converter_manager.get_converter(pipeline, vlm_prompt)
         
         # Extract archive
         extract_dir = Path(tempfile.mkdtemp(prefix='extract_'))

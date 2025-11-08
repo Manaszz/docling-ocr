@@ -38,16 +38,17 @@ class ConverterManager:
         self._initialized = True
         logger.info("ConverterManager initialization complete")
     
-    def get_converter(self, pipeline: str = "std") -> DoclingConverterService:
+    def get_converter(self, pipeline: str = "std", custom_vlm_prompt: Optional[str] = None) -> DoclingConverterService:
         """
         Get converter instance for specified pipeline
-        
+
         Args:
             pipeline: Pipeline mode - "std" (standard) or "vlm"
-        
+            custom_vlm_prompt: Custom prompt for VLM pipeline (optional)
+
         Returns:
             DoclingConverterService instance
-        
+
         Raises:
             ValueError: If pipeline is invalid or VLM not configured
         """
@@ -66,7 +67,7 @@ class ConverterManager:
                 # Lazy initialization for VLM
                 logger.info("Lazy-loading VLM pipeline...")
                 try:
-                    converter = self._create_vlm_converter()
+                    converter = self._create_vlm_converter(custom_vlm_prompt)
                     self._converters["vlm"] = converter
                     logger.info("VLM pipeline initialized successfully")
                 except Exception as e:
@@ -103,21 +104,22 @@ class ConverterManager:
             table_config=table_config,
         )
     
-    def _create_vlm_converter(self) -> DoclingConverterService:
+    def _create_vlm_converter(self, custom_vlm_prompt: Optional[str] = None) -> DoclingConverterService:
         """Create VLM pipeline converter"""
         if not settings.docling_vlm_enabled:
             raise ValueError("VLM pipeline is disabled in configuration")
-        
+
         vlm_config = settings.get_vlm_config()
         if not vlm_config:
             raise ValueError("VLM configuration not available")
-        
+
         return DoclingConverterService(
             pipeline_mode="vlm",
             artifacts_path=str(settings.get_artifacts_path()),
             ocr_config=None,
             vlm_config=vlm_config,
             table_config=None,
+            custom_vlm_prompt=custom_vlm_prompt,
         )
     
     def is_pipeline_available(self, pipeline: str) -> bool:

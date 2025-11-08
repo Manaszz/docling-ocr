@@ -51,6 +51,7 @@ services:
       - DOCLING_VLM_TIMEOUT=${DOCLING_VLM_TIMEOUT:-90}
       - DOCLING_VLM_TEMPERATURE=${DOCLING_VLM_TEMPERATURE:-0.0}
       - DOCLING_VLM_MAX_TOKENS=${DOCLING_VLM_MAX_TOKENS:-4096}
+      - DOCLING_VLM_PROMPT=${DOCLING_VLM_PROMPT:-Convert this document page to markdown format.}
       - DOCLING_VLM_RESPONSE_FORMAT=${DOCLING_VLM_RESPONSE_FORMAT:-markdown}
       
       # Archive Processing

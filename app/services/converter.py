@@ -32,22 +32,25 @@ class DoclingConverterService:
         ocr_config: Optional[Dict[str, Any]] = None,
         vlm_config: Optional[Dict[str, Any]] = None,
         table_config: Optional[Dict[str, Any]] = None,
+        custom_vlm_prompt: Optional[str] = None,
     ):
         """
         Initialize Docling converter
-        
+
         Args:
             pipeline_mode: Pipeline mode - 'standard' or 'vlm'
             artifacts_path: Path to Docling models
             ocr_config: OCR configuration dict
             vlm_config: VLM configuration dict
             table_config: Table processing configuration
+            custom_vlm_prompt: Override VLM prompt for this instance
         """
         self.pipeline_mode = pipeline_mode
         self.artifacts_path = artifacts_path
         self.ocr_config = ocr_config or {}
         self.vlm_config = vlm_config or {}
         self.table_config = table_config or {}
+        self.custom_vlm_prompt = custom_vlm_prompt
         self._converter = None
         self._initialize_converter()
     
@@ -144,7 +147,7 @@ class DoclingConverterService:
                 temperature=self.vlm_config.get("temperature", 0.0),
             ),
             headers={"Authorization": f"Bearer {self.vlm_config.get('api_key', '')}"},
-            prompt="Convert this document page to markdown format.",
+            prompt=self.custom_vlm_prompt or self.vlm_config.get("prompt", "Convert this document page to markdown format."),
             timeout=self.vlm_config.get("timeout", 90),
             response_format=response_format,
         )

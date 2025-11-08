@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     docling_vlm_temperature: float = 0.0
     docling_vlm_max_tokens: int = 4096
     docling_vlm_response_format: str = "markdown"  # markdown, html, doctags
+    docling_vlm_prompt: str = "Convert this document page to markdown format."
     
     # Archive Processing
     preserve_structure: bool = True
@@ -82,7 +83,7 @@ class Settings(BaseSettings):
         """Get VLM configuration if enabled"""
         if not self.docling_vlm_enabled:
             return None
-        
+
         return {
             "api_url": self.docling_vlm_api_url,
             "api_key": self.docling_vlm_api_key,
@@ -91,6 +92,7 @@ class Settings(BaseSettings):
             "temperature": self.docling_vlm_temperature,
             "max_tokens": self.docling_vlm_max_tokens,
             "response_format": self.docling_vlm_response_format,
+            "prompt": self.docling_vlm_prompt,
         }
     
     def get_artifacts_path(self) -> Path:
