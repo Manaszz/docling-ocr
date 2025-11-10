@@ -337,3 +337,7 @@ def safe_process_file(upload_file: UploadFile):
 
 This `.cursorrules` file captures the essential patterns, preferences, and intelligence accumulated during Docling OCR development. Use it as a reference for maintaining consistency and quality in future development work.
 
+
+
+
+

@@ -240,7 +240,7 @@ DOCLING_OCR_GPU=false
 DOCLING_VLM_ENABLED=true  # Enable VLM pipeline
 DOCLING_VLM_API_URL=http://localhost:8000/v1/chat/completions
 DOCLING_VLM_MODEL=qwen/qwen3-vl-235b-a22b-instruct
-DOCLING_VLM_PROMPT=Convert this document page to markdown format.
+DOCLING_VLM_PROMPT=Convert this page to docling.
 
 # Table Processing
 DOCLING_TABLE_MODE=accurate  # fast or accurate

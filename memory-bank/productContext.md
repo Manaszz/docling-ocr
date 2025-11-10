@@ -164,3 +164,7 @@ Docling OCR positions as:
 
 **Document Purpose**: Defines the problems we solve and user value propositions that guide product decisions and feature prioritization.
 
+
+
+
+

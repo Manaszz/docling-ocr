@@ -61,7 +61,22 @@ class ConverterManager:
         
         # Get or create converter
         converter = self._converters.get(pipeline)
+
+        # Log converter usage
+        logger.info(f"ConverterManager.get_converter called - Pipeline: '{pipeline}', Custom prompt: {bool(custom_vlm_prompt)}")
         
+        if custom_vlm_prompt:
+            logger.info(f"Using {pipeline} pipeline with custom VLM prompt", extra={
+                "pipeline": pipeline,
+                "custom_prompt": True,
+                "prompt_preview": custom_vlm_prompt[:50] + ("..." if len(custom_vlm_prompt) > 50 else "")
+            })
+        else:
+            logger.info(f"Using {pipeline} pipeline (default prompt)", extra={
+                "pipeline": pipeline,
+                "custom_prompt": False
+            })
+
         if converter is None:
             if pipeline == "vlm":
                 # Lazy initialization for VLM

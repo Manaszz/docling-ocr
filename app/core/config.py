@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     docling_vlm_temperature: float = 0.0
     docling_vlm_max_tokens: int = 4096
     docling_vlm_response_format: str = "markdown"  # markdown, html, doctags
-    docling_vlm_prompt: str = "Convert this document page to markdown format."
+    docling_vlm_prompt: str = "Convert this page to docling."  # Original Docling default: "Convert this page to docling."
     
     # Archive Processing
     preserve_structure: bool = True

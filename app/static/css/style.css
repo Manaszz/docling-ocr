@@ -622,3 +622,272 @@ footer a:hover {
     }
 }
 
+/* VLM Prompt Styles */
+#vlmPromptSelect {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+#vlmPromptSelect:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+#vlmPrompt {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+}
+
+#vlmPrompt:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+#vlmPrompt::placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.vlm-only {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tabs Styles */
+.tabs-container {
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 4px;
+}
+
+.tab-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    bottom: -2px;
+}
+
+.tab-button:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.tab-button.active {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+    background: transparent;
+}
+
+.tab-icon {
+    font-size: 16px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Markdown Preview Styles */
+.markdown-content {
+    padding: 24px;
+    max-width: 100%;
+    overflow-x: auto;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text-primary);
+}
+
+.markdown-content h1 {
+    font-size: 2em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.markdown-content h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.markdown-content h3 {
+    font-size: 1.25em;
+}
+
+.markdown-content p {
+    margin-bottom: 16px;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    margin-bottom: 16px;
+    padding-left: 30px;
+}
+
+.markdown-content li {
+    margin-bottom: 8px;
+}
+
+.markdown-content blockquote {
+    margin: 16px 0;
+    padding: 0 16px;
+    border-left: 4px solid var(--accent-color);
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+}
+
+.markdown-content code {
+    padding: 2px 6px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+    color: var(--accent-color);
+}
+
+.markdown-content pre {
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.markdown-content pre code {
+    padding: 0;
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: 0;
+}
+
+.markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.markdown-content table th,
+.markdown-content table td {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.markdown-content table th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+}
+
+.markdown-content table tr:nth-child(even) {
+    background: var(--bg-secondary);
+}
+
+.markdown-content a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.markdown-content a:hover {
+    text-decoration: underline;
+}
+
+.markdown-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 16px 0;
+}
+
+.markdown-content hr {
+    border: none;
+    border-top: 2px solid var(--border-color);
+    margin: 24px 0;
+}
+
+/* Raw Content Styles */
+.raw-content {
+    padding: 24px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: none;
+    overflow-x: auto;
+}
+
+/* Dark theme adjustments for markdown */
+:root[data-theme="dark"] .markdown-content {
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .markdown-content code {
+    background: var(--bg-tertiary);
+    color: #79b8ff;
+}
+
+:root[data-theme="dark"] .markdown-content pre {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .markdown-content table th {
+    background: var(--bg-tertiary);
+}
+
+:root[data-theme="dark"] .markdown-content table tr:nth-child(even) {
+    background: var(--bg-tertiary);
+}

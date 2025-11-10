@@ -43,8 +43,24 @@ async def upload_file(
         List of conversion results with pipeline and OCR usage info
     """
     temp_file_path = None
-    
+
     try:
+        # Log conversion start
+        file_content = await file.read()
+        logger.info(f"Starting file conversion - Pipeline: {pipeline}, File: {file.filename}, Size: {len(file_content)} bytes", extra={
+            "pipeline": pipeline,
+            "file_name": file.filename,
+            "file_size": len(file_content),
+            "vlm_prompt_provided": bool(vlm_prompt),
+            "endpoint": "upload"
+        })
+        
+        if vlm_prompt:
+            logger.info(f"Custom VLM prompt provided: {vlm_prompt[:100]}...")
+
+        # Reset file pointer
+        await file.seek(0)
+
         # Get converter for specified pipeline
         converter = converter_manager.get_converter(pipeline, vlm_prompt)
         

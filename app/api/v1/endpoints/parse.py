@@ -43,6 +43,14 @@ async def parse_documents(
         List of conversion results as JSON
     """
     try:
+        # Log conversion start
+        logger.info(f"Starting batch document conversion", extra={
+            "pipeline": pipeline,
+            "document_count": len(request.docs),
+            "vlm_prompt_provided": bool(vlm_prompt),
+            "endpoint": "parse"
+        })
+
         # Get converter for specified pipeline
         converter = converter_manager.get_converter(pipeline, vlm_prompt)
         

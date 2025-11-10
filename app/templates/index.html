@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Docling OCR - Document Converter</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Markdown rendering libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -18,7 +23,7 @@
                 <div class="pipeline-toggle">
                     <span class="pipeline-label">Pipeline:</span>
                     <div class="toggle-switch">
-                        <input type="checkbox" id="pipelineMode" disabled>
+                        <input type="checkbox" id="pipelineMode">
                         <label for="pipelineMode" class="toggle-label">
                             <span class="toggle-option">Standard</span>
                             <span class="toggle-slider"></span>
@@ -32,6 +37,10 @@
         
         <!-- Status Bar -->
         <div class="status-bar" id="statusBar">
+            <div class="status-item">
+                <span class="status-label">Pipeline:</span>
+                <span class="status-value" id="currentPipeline">Loading...</span>
+            </div>
             <div class="status-item">
                 <span class="status-label">Mode:</span>
                 <span class="status-value" id="currentMode">Loading...</span>
@@ -89,12 +98,20 @@
                             </select>
                         </label>
                     </div>
-                    <div class="option-group">
+                    <div class="option-group vlm-only" id="vlmPromptGroup" style="display: none;">
                         <label>
-                            VLM Prompt (VLM pipeline only):
-                            <textarea id="vlmPrompt" rows="3" placeholder="Convert this document page to markdown format." style="width: 100%; resize: vertical;"></textarea>
+                            VLM Prompt:
+                            <select id="vlmPromptSelect" onchange="onPromptSelectChange()" style="width: 100%; margin-bottom: 8px;">
+                                <option value="">Custom prompt...</option>
+                                <option value="Convert this page to docling.">Default (Docling original)</option>
+                                <option value="Convert this document page to markdown format.">Markdown focused</option>
+                                <option value="OCR the full page to markdown.">OCR to Markdown</option>
+                                <option value="Extract all text and tables from this document in structured markdown format.">Tables & text extraction</option>
+                                <option value="Convert this page to a complete HTML document with semantic tables (including cross-row/col), stylized text (bold, color), LaTeX formulas, and image placeholders for all graphics.">Full HTML conversion</option>
+                            </select>
+                            <textarea id="vlmPrompt" rows="3" placeholder="Convert this page to docling." style="width: 100%; resize: vertical;"></textarea>
                         </label>
-                        <small style="color: #666; font-size: 0.8em;">Custom prompt for Vision-Language Model processing. Leave empty to use default.</small>
+                        <small style="color: #666; font-size: 0.8em;">Select a preset prompt or enter custom instructions for the Vision-Language Model.</small>
                     </div>
                 </div>
             </details>
@@ -123,9 +140,31 @@
                 <span class="results-count" id="resultsCount"></span>
             </div>
             
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab-button active" onclick="switchTab('raw')" id="tabRaw">
+                        <span class="tab-icon">📝</span>
+                        Raw Text
+                    </button>
+                    <button class="tab-button" onclick="switchTab('preview')" id="tabPreview">
+                        <span class="tab-icon">👁️</span>
+                        Markdown Preview
+                    </button>
+                </div>
+            </div>
+            
             <!-- Preview Window -->
             <div class="preview-container">
-                <div class="preview-window" id="preview"></div>
+                <!-- Raw Text Tab -->
+                <div class="preview-window tab-content active" id="previewRaw">
+                    <pre id="previewRawContent" class="raw-content"></pre>
+                </div>
+                
+                <!-- Markdown Preview Tab -->
+                <div class="preview-window tab-content" id="previewMarkdown">
+                    <div id="previewMarkdownContent" class="markdown-content"></div>
+                </div>
             </div>
             
             <!-- Action Buttons -->

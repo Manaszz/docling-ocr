@@ -57,9 +57,12 @@ class DoclingConverterService:
     def _initialize_converter(self):
         """Initialize DocumentConverter with appropriate pipeline"""
         try:
+            logger.info(f"Initializing converter with pipeline_mode: '{self.pipeline_mode}'")
             if self.pipeline_mode == "vlm":
+                logger.info("Creating VLM converter...")
                 self._converter = self._create_vlm_converter()
             else:
+                logger.info("Creating Standard converter...")
                 self._converter = self._create_standard_converter()
             
             logger.info(f"Initialized Docling converter in {self.pipeline_mode} mode")
@@ -122,10 +125,20 @@ class DoclingConverterService:
         return converter
     
     def _create_vlm_converter(self) -> DocumentConverter:
-        """Create converter with VlmPipeline"""
+        """Create converter with VlmPipeline using remote API (ApiVlmOptions).
+        
+        GPU acceleration is handled by the API provider (e.g., OpenRouter).
+        """
         
         if not self.vlm_config:
             raise ValueError("VLM configuration is required for VLM pipeline mode")
+        
+        # Log VLM configuration
+        logger.info(f"Creating VLM converter with API mode", extra={
+            "api_url": self.vlm_config.get("api_url"),
+            "model": self.vlm_config.get("model"),
+            "note": "GPU acceleration handled by API provider"
+        })
         
         # Map response format
         response_format_map = {
@@ -147,7 +160,7 @@ class DoclingConverterService:
                 temperature=self.vlm_config.get("temperature", 0.0),
             ),
             headers={"Authorization": f"Bearer {self.vlm_config.get('api_key', '')}"},
-            prompt=self.custom_vlm_prompt or self.vlm_config.get("prompt", "Convert this document page to markdown format."),
+            prompt=self.custom_vlm_prompt or self.vlm_config.get("prompt", "Convert this page to docling."),
             timeout=self.vlm_config.get("timeout", 90),
             response_format=response_format,
         )
@@ -183,17 +196,26 @@ class DoclingConverterService:
     ) -> Dict[str, Any]:
         """
         Convert a file to the specified format
-        
+
         Args:
             file_path: Path to file to convert
             output_format: Output format (markdown, html, json, doctags)
-        
+
         Returns:
             Dict with 'text' and optional 'metadata'
         """
         try:
             file_path = Path(file_path)
-            
+
+            # Log conversion start
+            logger.info(f"Converting file with {self.pipeline_mode} pipeline", extra={
+                "pipeline": self.pipeline_mode,
+                "file_path": str(file_path),
+                "file_name": file_path.name,
+                "output_format": output_format,
+                "custom_prompt": bool(self.custom_vlm_prompt)
+            })
+
             # Convert document
             result = self._converter.convert(str(file_path))
             
@@ -213,10 +235,20 @@ class DoclingConverterService:
             # Fix Unicode codes (e.g., /uni043F -> п)
             # This fixes a common issue with Cyrillic text in PDFs with embedded fonts
             text = fix_unicode_codes(text)
-            
+
             # Extract metadata
             metadata = self._extract_metadata(result)
-            
+
+            # Log conversion completion
+            logger.info(f"File conversion completed", extra={
+                "pipeline": self.pipeline_mode,
+                "file_name": file_path.name,
+                "output_format": output_format,
+                "text_length": len(text),
+                "page_count": metadata.get("num_pages", 0),
+                "processing_time": metadata.get("processing_time", 0)
+            })
+
             return {
                 "text": text,
                 "metadata": metadata,

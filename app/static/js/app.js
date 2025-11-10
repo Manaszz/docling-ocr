@@ -1,6 +1,7 @@
 // Global state
 let currentResults = [];
 let uploadedFiles = null;
+let currentPipeline = 'std'; // 'std' or 'vlm'
 const API_PREFIX = '/ocr/docling';
 
 // Theme Switcher
@@ -24,6 +25,91 @@ themeToggle.addEventListener('click', () => {
     setTheme(newTheme);
 });
 
+// Pipeline Mode Toggle
+const pipelineToggle = document.getElementById('pipelineMode');
+pipelineToggle.addEventListener('change', (e) => {
+    const newPipeline = e.target.checked ? 'vlm' : 'std';
+    console.log(`[UI] Pipeline switched from '${currentPipeline}' to '${newPipeline}'`);
+    currentPipeline = newPipeline;
+    updatePipelineUI();
+    updateStatusBarFromCurrentState();
+});
+
+// Update UI based on pipeline mode
+function updatePipelineUI() {
+    const vlmPromptGroup = document.getElementById('vlmPromptGroup');
+    const optionsPanel = document.querySelector('.options-panel');
+    
+    if (!vlmPromptGroup) {
+        console.warn('[UI] vlmPromptGroup element not found');
+        return;
+    }
+    
+    if (currentPipeline === 'vlm') {
+        vlmPromptGroup.style.display = 'block';
+        // Auto-open Advanced Options panel when VLM is selected
+        if (optionsPanel && !optionsPanel.open) {
+            optionsPanel.open = true;
+            console.log('[UI] Advanced Options panel opened for VLM prompt');
+        }
+        console.log('[UI] VLM prompt editor shown');
+    } else {
+        vlmPromptGroup.style.display = 'none';
+        console.log('[UI] VLM prompt editor hidden');
+    }
+}
+
+// Update status bar based on current state
+function updateStatusBarFromCurrentState() {
+    const currentPipelineEl = document.getElementById('currentPipeline');
+    const currentMode = document.getElementById('currentMode');
+    const ocrStatus = document.getElementById('ocrStatus');
+    const ocrToggle = document.getElementById('ocrToggle');
+
+    // Update pipeline display
+    const pipelineText = currentPipeline === 'std' ? 'Standard' : 'VLM';
+    currentPipelineEl.textContent = pipelineText;
+    currentPipelineEl.className = 'status-value success';
+
+    // Update mode display
+    const modeText = currentPipeline === 'std' ? 'Standard' : 'VLM';
+    currentMode.textContent = modeText;
+    currentMode.className = 'status-value success';
+
+    // Update OCR status
+    if (currentPipeline === 'std') {
+        ocrStatus.textContent = 'Enabled'; // Default for standard pipeline
+        ocrStatus.className = 'status-value success';
+        if (ocrToggle) ocrToggle.checked = true;
+    } else {
+        ocrStatus.textContent = 'N/A';
+        ocrStatus.className = 'status-value';
+    }
+}
+
+// Handle prompt selection change
+function onPromptSelectChange() {
+    const select = document.getElementById('vlmPromptSelect');
+    const textarea = document.getElementById('vlmPrompt');
+    
+    if (!select || !textarea) {
+        console.warn('[UI] Prompt select elements not found');
+        return;
+    }
+    
+    const selectedValue = select.value;
+
+    if (selectedValue) {
+        textarea.value = selectedValue;
+        console.log(`[UI] Prompt selected: "${selectedValue.substring(0, 50)}${selectedValue.length > 50 ? '...' : ''}"`);
+    } else {
+        // Custom prompt - clear textarea for user input
+        textarea.value = '';
+        textarea.focus();
+        console.log('[UI] Custom prompt mode - textarea cleared');
+    }
+}
+
 // Initialize App
 async function initializeApp() {
     await fetchSystemStatus();
@@ -36,6 +122,16 @@ async function fetchSystemStatus() {
         if (response.ok) {
             const data = await response.json();
             updateStatusBar(data);
+
+            // Initialize pipeline toggle based on server status
+            const serverPipeline = data.pipeline_mode === 'vlm' ? 'vlm' : 'std';
+            if (currentPipeline !== serverPipeline) {
+                console.log(`[UI] Pipeline initialized from server: '${serverPipeline}'`);
+            }
+            currentPipeline = serverPipeline;
+            pipelineToggle.checked = (currentPipeline === 'vlm');
+            updatePipelineUI(); // Update UI after pipeline is set
+            updateStatusBarFromCurrentState();
         }
     } catch (error) {
         console.error('Failed to fetch system status:', error);
@@ -44,22 +140,34 @@ async function fetchSystemStatus() {
             ocr_enabled: false,
             models_loaded: false,
         });
+        // Default to standard pipeline on error
+        currentPipeline = 'std';
+        pipelineToggle.checked = false;
+        updatePipelineUI(); // Update UI even on error
+        updateStatusBarFromCurrentState();
     }
 }
 
 // Update status bar
 function updateStatusBar(status) {
+    const currentPipelineEl = document.getElementById('currentPipeline');
     const currentMode = document.getElementById('currentMode');
     const ocrStatus = document.getElementById('ocrStatus');
     const modelsStatus = document.getElementById('modelsStatus');
     const ocrToggle = document.getElementById('ocrToggle');
-    
-    // Update pipeline mode
-    const modeText = status.pipeline_mode === 'standard' ? 'Standard' : 
+
+    // Update pipeline display
+    const pipelineText = status.pipeline_mode === 'standard' ? 'Standard' :
+                        status.pipeline_mode === 'vlm' ? 'VLM' : 'Unknown';
+    currentPipelineEl.textContent = pipelineText;
+    currentPipelineEl.className = 'status-value ' + (status.pipeline_mode !== 'unknown' ? 'success' : 'error');
+
+    // Update mode display
+    const modeText = status.pipeline_mode === 'standard' ? 'Standard' :
                      status.pipeline_mode === 'vlm' ? 'VLM' : 'Unknown';
     currentMode.textContent = modeText;
     currentMode.className = 'status-value ' + (status.pipeline_mode !== 'unknown' ? 'success' : 'error');
-    
+
     // Update OCR status
     if (status.pipeline_mode === 'standard') {
         ocrStatus.textContent = status.ocr_enabled ? 'Enabled' : 'Disabled';
@@ -68,12 +176,12 @@ function updateStatusBar(status) {
         ocrStatus.textContent = 'N/A';
         ocrStatus.className = 'status-value';
     }
-    
+
     // Update OCR toggle to match current state
     if (ocrToggle) {
         ocrToggle.checked = status.ocr_enabled || false;
     }
-    
+
     // Update models status
     modelsStatus.textContent = status.models_loaded ? 'Loaded' : 'Not Found';
     modelsStatus.className = 'status-value ' + (status.models_loaded ? 'success' : 'warning');
@@ -200,22 +308,30 @@ async function uploadFiles() {
         const extractTablesCheckbox = document.getElementById('extractTables');
         const extractTables = extractTablesCheckbox && extractTablesCheckbox.checked;
 
-        // Get VLM prompt
-        const vlmPromptElement = document.getElementById('vlmPrompt');
-        const vlmPrompt = vlmPromptElement ? vlmPromptElement.value.trim() : '';
-
         const formData = new FormData();
         formData.append('file', files[0]);
 
-        // Add VLM prompt if provided
-        if (vlmPrompt) {
-            formData.append('vlm_prompt', vlmPrompt);
-        }
-
-        // Use appropriate endpoint
+        // Build URL with query parameters
         const endpoint = extractTables ? '/extract/tables' : '/upload';
+        const url = new URL(`${API_PREFIX}${endpoint}`, window.location.origin);
+        url.searchParams.append('pipeline', currentPipeline);
         
-        const response = await fetch(`${API_PREFIX}${endpoint}`, {
+        // Add VLM prompt only if VLM pipeline is selected
+        if (currentPipeline === 'vlm') {
+            const vlmPromptElement = document.getElementById('vlmPrompt');
+            const vlmPrompt = vlmPromptElement ? vlmPromptElement.value.trim() : '';
+            if (vlmPrompt) {
+                console.log(`[UI] Using custom VLM prompt: "${vlmPrompt.substring(0, 50)}${vlmPrompt.length > 50 ? '...' : ''}"`);
+                url.searchParams.append('vlm_prompt', vlmPrompt);
+            } else {
+                console.log(`[UI] Using default VLM prompt`);
+            }
+        }
+        
+        console.log(`[UI] Converting file '${files[0].name}' using pipeline: '${currentPipeline}'`);
+        console.log(`[UI] Request URL: ${url.pathname}${url.search}`);
+
+        const response = await fetch(url.toString(), {
             method: 'POST',
             body: formData
         });
@@ -253,11 +369,100 @@ async function uploadFiles() {
     }
 }
 
+// Switch between tabs
+function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    // Show selected tab content
+    if (tabName === 'raw') {
+        document.getElementById('previewRaw').classList.add('active');
+        document.getElementById('tabRaw').classList.add('active');
+    } else if (tabName === 'preview') {
+        document.getElementById('previewMarkdown').classList.add('active');
+        document.getElementById('tabPreview').classList.add('active');
+        // Render markdown if not already rendered
+        renderMarkdownPreview();
+    }
+}
+
+// Render markdown preview
+function renderMarkdownPreview() {
+    const markdownContent = document.getElementById('previewMarkdownContent');
+    const rawContent = document.getElementById('previewRawContent');
+    
+    if (!markdownContent || !rawContent) return;
+    
+    // Get raw text
+    const rawText = rawContent.textContent;
+    
+    // Check if already rendered
+    if (markdownContent.dataset.rendered === 'true') {
+        return;
+    }
+    
+    try {
+        // Configure marked options
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+            
+            // Render markdown
+            const html = marked.parse(rawText);
+            
+            // Sanitize HTML with DOMPurify
+            if (typeof DOMPurify !== 'undefined') {
+                const cleanHtml = DOMPurify.sanitize(html, {
+                    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                                   'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead', 'tbody', 
+                                   'tr', 'th', 'td', 'a', 'img', 'hr', 'del', 'ins'],
+                    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class']
+                });
+                markdownContent.innerHTML = cleanHtml;
+            } else {
+                markdownContent.innerHTML = html;
+            }
+            
+            // Highlight code blocks
+            if (typeof hljs !== 'undefined') {
+                markdownContent.querySelectorAll('pre code').forEach(block => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            markdownContent.dataset.rendered = 'true';
+        } else {
+            markdownContent.innerHTML = '<p style="color: var(--text-secondary);">Markdown preview library not loaded. Showing raw text.</p><pre>' + 
+                                       rawText.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+        }
+    } catch (error) {
+        console.error('Error rendering markdown:', error);
+        markdownContent.innerHTML = '<p style="color: var(--error-color);">Error rendering markdown preview.</p>';
+    }
+}
+
 // Display Results
 function displayResults(results) {
     const resultsSection = document.getElementById('resultsSection');
-    const preview = document.getElementById('preview');
+    const rawContent = document.getElementById('previewRawContent');
+    const markdownContent = document.getElementById('previewMarkdownContent');
     const resultsCount = document.getElementById('resultsCount');
+    
+    if (!rawContent || !markdownContent) {
+        console.error('Preview elements not found');
+        return;
+    }
     
     // Build combined text with separators
     let combinedText = '';
@@ -288,9 +493,19 @@ function displayResults(results) {
         }
     });
     
-    preview.textContent = combinedText;
+    // Set raw content
+    rawContent.textContent = combinedText;
+    
+    // Reset markdown content and mark as not rendered
+    markdownContent.innerHTML = '';
+    markdownContent.dataset.rendered = 'false';
+    
+    // Show results section
     resultsCount.textContent = `${results.length} file${results.length > 1 ? 's' : ''}`;
     resultsSection.style.display = 'block';
+    
+    // Switch to raw tab by default
+    switchTab('raw');
     
     // Scroll to results
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -300,7 +515,8 @@ function displayResults(results) {
 function displayTableResults(result) {
     const resultsSection = document.getElementById('resultsSection');
     const resultsCount = document.getElementById('resultsCount');
-    const preview = document.getElementById('preview');
+    const rawContent = document.getElementById('previewRawContent');
+    const markdownContent = document.getElementById('previewMarkdownContent');
     
     if (result.error) {
         showError(`Error extracting tables: ${result.error}`);
@@ -360,9 +576,19 @@ function displayTableResults(result) {
         tableText += '\n';
     });
     
-    preview.textContent = tableText;
+    if (!rawContent || !markdownContent) {
+        console.error('Preview elements not found');
+        return;
+    }
+
+    rawContent.textContent = tableText;
+    markdownContent.innerHTML = '';
+    markdownContent.dataset.rendered = 'false';
     resultsCount.textContent = `${tables.length} table${tables.length > 1 ? 's' : ''}`;
     resultsSection.style.display = 'block';
+
+    // Default to raw tab for tables
+    switchTab('raw');
     
     showSuccess(`Extracted ${tables.length} table${tables.length > 1 ? 's' : ''} successfully!`);
     showSpinner(false);
@@ -373,8 +599,13 @@ function displayTableResults(result) {
 
 // Copy text to clipboard
 async function copyText() {
-    const preview = document.getElementById('preview');
-    const text = preview.textContent;
+    const rawContent = document.getElementById('previewRawContent');
+    if (!rawContent) {
+        showError('Preview content not found');
+        return;
+    }
+    
+    const text = rawContent.textContent;
     
     try {
         await navigator.clipboard.writeText(text);
@@ -511,5 +742,10 @@ function hideMessage() {
 }
 
 // Initialize on load
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+    // Initialize UI state
+    updatePipelineUI();
+    updateStatusBarFromCurrentState();
+});
 

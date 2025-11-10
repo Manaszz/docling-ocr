@@ -50,6 +50,10 @@ async def lifespan(app: FastAPI):
     # Log VLM status
     if settings.docling_vlm_enabled:
         logger.info(f"VLM enabled: {settings.docling_vlm_model}")
+        logger.info(f"VLM API URL: {settings.docling_vlm_api_url}")
+        logger.info("VLM Pipeline: Using remote API mode - GPU acceleration handled by API provider")
+        if "openrouter" in settings.docling_vlm_api_url.lower():
+            logger.info("OpenRouter API detected - GPU acceleration automatically enabled on provider side")
     else:
         logger.info("VLM disabled")
     
