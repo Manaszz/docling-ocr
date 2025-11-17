@@ -30,6 +30,10 @@ class ConversionResult(BaseModel):
         None,
         description="Document metadata (page count, tables, etc.)"
     )
+    doc_tags: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Structured document data (always available)"
+    )
     pipeline_used: Optional[str] = Field(None, description="Pipeline used for conversion (std/vlm)")
 
 
@@ -39,6 +43,10 @@ class TableExtractionResult(BaseModel):
     tables: List[Dict[str, Any]] = Field(
         ...,
         description="List of extracted tables with structure"
+    )
+    doc_tags: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Document tags and structured data"
     )
     error: Optional[str] = None
 

@@ -134,10 +134,20 @@ curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=vlm" \
 curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=std&ocr_mode=always" \
   -F "file=@document.pdf"
 
-# Convert to MD file
-curl -X POST "http://localhost:8002/ocr/docling/upload/md?pipeline=std" \
-  -F "file=@document.pdf" \
-  -o output.md
+# Different output formats
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=std&output_format=html" \
+  -F "file=@document.pdf"
+
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=std&output_format=json" \
+  -F "file=@document.pdf"
+
+# Control doc tags inclusion
+curl -X POST "http://localhost:8002/ocr/docling/upload?pipeline=std&include_doc_tags=false" \
+  -F "file=@document.pdf"
+
+# Extract tables with JSON output
+curl -X POST "http://localhost:8002/ocr/docling/extract/tables?pipeline=std&output_format=markdown" \
+  -F "file=@document.pdf"
 ```
 
 ### 3. Parse Base64
@@ -222,8 +232,71 @@ curl http://localhost:8002/ocr/docling/pipeline
     "parameter": "Use ?pipeline=std or ?pipeline=vlm on any endpoint",
     "default": "std (standard pipeline)"
   }
+
 }
 ```
+
+## 📋 API Parameters
+
+### Upload Endpoint (`/ocr/docling/upload`)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pipeline` | string | `std` | Pipeline mode: `std` (standard) or `vlm` (Vision-Language Model) |
+| `ocr_mode` | string | `auto` | OCR mode for std pipeline: `auto`, `always`, `never` |
+| `output_format` | string | `markdown` | Output format: `markdown`, `html`, `json`, `doctags` |
+| `include_doc_tags` | boolean | `true` | Include structured document data (doc tags) in response |
+| `vlm_prompt` | string | - | Custom prompt for VLM pipeline (optional) |
+
+### Parse Endpoint (`/ocr/docling/parse`)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pipeline` | string | `std` | Pipeline mode: `std` (standard) or `vlm` (Vision-Language Model) |
+| `output_format` | string | `markdown` | Output format: `markdown`, `html`, `json`, `doctags` |
+| `include_doc_tags` | boolean | `true` | Include structured document data (doc tags) in response |
+| `vlm_prompt` | string | - | Custom prompt for VLM pipeline (optional) |
+
+### Extract Tables Endpoint (`/ocr/docling/extract/tables`)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pipeline` | string | `std` | Pipeline mode: `std` (standard) or `vlm` (Vision-Language Model) |
+| `ocr_mode` | string | `auto` | OCR mode for std pipeline: `auto`, `always`, `never` |
+| `output_format` | string | `markdown` | Output format for document text: `markdown`, `html`, `json`, `doctags` |
+| `include_doc_tags` | boolean | `true` | Include structured document data (doc tags) in response |
+| `vlm_prompt` | string | - | Custom prompt for VLM pipeline (optional) |
+
+### Response Format
+
+All endpoints return JSON with the following structure:
+
+```json
+{
+  "file_name": "document.pdf",
+  "file_extension": ".pdf",
+  "file_text": "# Converted content in selected format...",
+  "metadata": {
+    "num_pages": 5,
+    "num_tables": 2,
+    "num_pictures": 3,
+    "ocr_used": true
+  },
+  "doc_tags": {
+    "schema_name": "DoclingDocument",
+    "version": "1.7.0",
+    "texts": [...],
+    "tables": [...],
+    "pictures": [...]
+  },
+  "pipeline_used": "std"
+}
+```
+
+**Notes:**
+- `doc_tags` field is included only when `include_doc_tags=true` (default)
+- `output_format` affects the format of `file_text` content
+- Table extraction endpoints return additional `tables` field with structured table data
 
 ## ⚙️ Configuration
 
@@ -273,7 +346,7 @@ Uses Vision-Language Models for end-to-end processing:
 - Single model for entire document
 - Supports OpenAI-compatible APIs (vLLM, Ollama, OpenRouter)
 - Models: Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision, etc.
-- Default: `qwen/qwen3-vl-235b-a22b-instruct`
+- Default: `qwen/qwen3-vl-30b-a3b-thinking` via OpenRouter
 - Customizable prompts: Use `?vlm_prompt=custom prompt` for specialized instructions
 
 **Best for**: Complex documents, experimental use, custom models, specialized document types

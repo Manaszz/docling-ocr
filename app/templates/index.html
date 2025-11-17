@@ -93,10 +93,17 @@
                             <select id="outputFormat">
                                 <option value="markdown" selected>Markdown</option>
                                 <option value="html">HTML</option>
-                                <option value="json">JSON</option>
+                                <option value="json">JSON (Doc Structure)</option>
                                 <option value="doctags">DocTags</option>
                             </select>
                         </label>
+                    </div>
+                    <div class="option-group">
+                        <label>
+                            <input type="checkbox" id="includeDocTags" checked>
+                            Include Doc Tags in Response
+                        </label>
+                        <small style="color: #666; font-size: 0.8em;">Structured document data for advanced processing</small>
                     </div>
                     <div class="option-group vlm-only" id="vlmPromptGroup" style="display: none;">
                         <label>
@@ -151,6 +158,14 @@
                         <span class="tab-icon">👁️</span>
                         Markdown Preview
                     </button>
+                    <button class="tab-button" onclick="switchTab('json-tables')" id="tabJsonTables" style="display: none;">
+                        <span class="tab-icon">📊</span>
+                        JSON Tables
+                    </button>
+                    <button class="tab-button" onclick="switchTab('doc-tags')" id="tabDocTags" style="display: none;">
+                        <span class="tab-icon">🏷️</span>
+                        Doc Tags
+                    </button>
                 </div>
             </div>
             
@@ -164,6 +179,16 @@
                 <!-- Markdown Preview Tab -->
                 <div class="preview-window tab-content" id="previewMarkdown">
                     <div id="previewMarkdownContent" class="markdown-content"></div>
+                </div>
+
+                <!-- JSON Tables Tab -->
+                <div class="preview-window tab-content" id="previewJsonTables">
+                    <pre id="previewJsonTablesContent" class="json-content"></pre>
+                </div>
+
+                <!-- Doc Tags Tab -->
+                <div class="preview-window tab-content" id="previewDocTags">
+                    <pre id="previewDocTagsContent" class="json-content"></pre>
                 </div>
             </div>
             

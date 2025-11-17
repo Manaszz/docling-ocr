@@ -26,6 +26,8 @@ archive_handler = ArchiveHandler()
 async def parse_documents(
     request: ParseRequest,
     pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
+    output_format: str = Query("markdown", regex="^(markdown|html|json|doctags)$", description="Output format: markdown, html, json, doctags"),
+    include_doc_tags: bool = Query(True, description="Include structured document data (doc tags) in response"),
     vlm_prompt: str = Query(None, description="Custom prompt for VLM pipeline (optional)"),
 ):
     """
@@ -80,7 +82,9 @@ async def parse_documents(
                         archive_results = await _process_archive_bytes_json(
                             file_bytes,
                             doc.filename,
-                            pipeline
+                            pipeline,
+                            output_format,
+                            include_doc_tags
                         )
                         results.extend(archive_results)
                     else:
@@ -97,15 +101,16 @@ async def parse_documents(
                 result_data = converter.convert_bytes(
                     file_bytes,
                     doc.filename,
-                    output_format=settings.default_output_format,
+                    output_format=output_format,
                     mime_type=doc.type
                 )
-                
+
                 results.append(ConversionResult(
                     file_name=doc.filename,
                     file_extension=doc.type,
                     file_text=result_data["text"],
                     metadata=result_data.get("metadata"),
+                    doc_tags=result_data.get("doc_tags") if include_doc_tags else None,
                     pipeline_used=pipeline,
                 ))
                 
@@ -252,7 +257,9 @@ async def parse_documents_md(
 async def _process_archive_bytes_json(
     archive_bytes: bytes,
     filename: str,
-    pipeline: str
+    pipeline: str,
+    output_format: str = "markdown",
+    include_doc_tags: bool = True
 ) -> List[ConversionResult]:
     """Process archive from bytes and return JSON results"""
     
@@ -301,13 +308,14 @@ async def _process_archive_bytes_json(
             try:
                 result_data = converter.convert_file(
                     file_path,
-                    output_format=settings.default_output_format
+                    output_format=output_format
                 )
                 results.append(ConversionResult(
                     file_name=str(file_path.relative_to(extract_dir)),
                     file_extension=file_path.suffix,
                     file_text=result_data["text"],
                     metadata=result_data.get("metadata"),
+                    doc_tags=result_data.get("doc_tags") if include_doc_tags else None,
                     pipeline_used=pipeline,
                 ))
             except Exception as e:

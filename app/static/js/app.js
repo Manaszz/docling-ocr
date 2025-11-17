@@ -2,6 +2,8 @@
 let currentResults = [];
 let uploadedFiles = null;
 let currentPipeline = 'std'; // 'std' or 'vlm'
+let currentTableData = null; // JSON data for extracted tables
+let currentDocTags = null; // Doc tags data
 const API_PREFIX = '/ocr/docling';
 
 // Theme Switcher
@@ -112,7 +114,9 @@ function onPromptSelectChange() {
 
 // Initialize App
 async function initializeApp() {
+    console.log('[UI] Initializing application...');
     await fetchSystemStatus();
+    console.log('[UI] Application initialized successfully');
 }
 
 // Fetch system status
@@ -311,11 +315,19 @@ async function uploadFiles() {
         const formData = new FormData();
         formData.append('file', files[0]);
 
+        // Get UI options
+        const outputFormatSelect = document.getElementById('outputFormat');
+        const outputFormat = outputFormatSelect ? outputFormatSelect.value : 'markdown';
+        const includeDocTagsCheckbox = document.getElementById('includeDocTags');
+        const includeDocTags = includeDocTagsCheckbox ? includeDocTagsCheckbox.checked : true;
+
         // Build URL with query parameters
         const endpoint = extractTables ? '/extract/tables' : '/upload';
         const url = new URL(`${API_PREFIX}${endpoint}`, window.location.origin);
         url.searchParams.append('pipeline', currentPipeline);
-        
+        url.searchParams.append('output_format', outputFormat);
+        url.searchParams.append('include_doc_tags', includeDocTags.toString());
+
         // Add VLM prompt only if VLM pipeline is selected
         if (currentPipeline === 'vlm') {
             const vlmPromptElement = document.getElementById('vlmPrompt');
@@ -375,12 +387,12 @@ function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
     });
-    
+
     // Remove active class from all buttons
     document.querySelectorAll('.tab-button').forEach(button => {
         button.classList.remove('active');
     });
-    
+
     // Show selected tab content
     if (tabName === 'raw') {
         document.getElementById('previewRaw').classList.add('active');
@@ -390,6 +402,16 @@ function switchTab(tabName) {
         document.getElementById('tabPreview').classList.add('active');
         // Render markdown if not already rendered
         renderMarkdownPreview();
+    } else if (tabName === 'json-tables') {
+        document.getElementById('previewJsonTables').classList.add('active');
+        document.getElementById('tabJsonTables').classList.add('active');
+        // Render JSON tables if not already rendered
+        renderJsonTables();
+    } else if (tabName === 'doc-tags') {
+        document.getElementById('previewDocTags').classList.add('active');
+        document.getElementById('tabDocTags').classList.add('active');
+        // Render doc tags if not already rendered
+        renderDocTags();
     }
 }
 
@@ -452,26 +474,89 @@ function renderMarkdownPreview() {
     }
 }
 
+// Render JSON tables
+function renderJsonTables() {
+    const jsonContent = document.getElementById('previewJsonTablesContent');
+
+    if (!jsonContent) return;
+
+    if (!currentTableData) {
+        jsonContent.textContent = 'No table data available';
+        return;
+    }
+
+    try {
+        // Pretty print JSON
+        const formattedJson = JSON.stringify(currentTableData, null, 2);
+        jsonContent.textContent = formattedJson;
+    } catch (error) {
+        console.error('Error rendering JSON tables:', error);
+        jsonContent.textContent = 'Error rendering JSON tables: ' + error.message;
+    }
+}
+
+// Render doc tags
+function renderDocTags() {
+    const jsonContent = document.getElementById('previewDocTagsContent');
+
+    if (!jsonContent) return;
+
+    if (!currentDocTags) {
+        jsonContent.textContent = 'No doc tags available';
+        return;
+    }
+
+    try {
+        // Pretty print JSON
+        const formattedJson = JSON.stringify(currentDocTags, null, 2);
+        jsonContent.textContent = formattedJson;
+    } catch (error) {
+        console.error('Error rendering doc tags:', error);
+        jsonContent.textContent = 'Error rendering doc tags: ' + error.message;
+    }
+}
+
 // Display Results
 function displayResults(results) {
     const resultsSection = document.getElementById('resultsSection');
     const rawContent = document.getElementById('previewRawContent');
     const markdownContent = document.getElementById('previewMarkdownContent');
     const resultsCount = document.getElementById('resultsCount');
-    
+
     if (!rawContent || !markdownContent) {
         console.error('Preview elements not found');
         return;
     }
-    
+
+    // Clear previous data
+    currentTableData = null;
+    currentDocTags = null;
+
+    // Check if any result has doc_tags
+    results.forEach(result => {
+        if (result.doc_tags) {
+            currentDocTags = result.doc_tags;
+        }
+    });
+
+    // Show Doc Tags tab if doc tags are available
+    if (currentDocTags) {
+        document.getElementById('tabDocTags').style.display = 'inline-flex';
+    } else {
+        document.getElementById('tabDocTags').style.display = 'none';
+    }
+
+    // Hide JSON Tables tab for regular conversions
+    document.getElementById('tabJsonTables').style.display = 'none';
+
     // Build combined text with separators
     let combinedText = '';
-    
+
     results.forEach((result, index) => {
         const separator = '='.repeat(60);
         combinedText += `${separator}\n`;
         combinedText += `📄 ${result.file_name}\n`;
-        
+
         // Add metadata if available
         if (result.metadata) {
             const meta = result.metadata;
@@ -479,34 +564,34 @@ function displayResults(results) {
             if (meta.num_tables) combinedText += `📊 Tables: ${meta.num_tables}\n`;
             if (meta.num_pictures) combinedText += `🖼️ Pictures: ${meta.num_pictures}\n`;
         }
-        
+
         combinedText += `${separator}\n\n`;
-        
+
         if (result.error) {
             combinedText += `❌ Error: ${result.error}\n\n`;
         } else {
             combinedText += result.file_text + '\n\n';
         }
-        
+
         if (index < results.length - 1) {
             combinedText += '\n\n';
         }
     });
-    
+
     // Set raw content
     rawContent.textContent = combinedText;
-    
+
     // Reset markdown content and mark as not rendered
     markdownContent.innerHTML = '';
     markdownContent.dataset.rendered = 'false';
-    
+
     // Show results section
     resultsCount.textContent = `${results.length} file${results.length > 1 ? 's' : ''}`;
     resultsSection.style.display = 'block';
-    
+
     // Switch to raw tab by default
     switchTab('raw');
-    
+
     // Scroll to results
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -517,65 +602,76 @@ function displayTableResults(result) {
     const resultsCount = document.getElementById('resultsCount');
     const rawContent = document.getElementById('previewRawContent');
     const markdownContent = document.getElementById('previewMarkdownContent');
-    
+
     if (result.error) {
         showError(`Error extracting tables: ${result.error}`);
         showSpinner(false);
         return;
     }
-    
+
     const tables = result.tables || [];
-    
+
     if (tables.length === 0) {
         showError('No tables found in the document');
         showSpinner(false);
         return;
     }
-    
+
+    // Store JSON data for the JSON Tables tab
+    currentTableData = result;
+    console.log('[UI] Stored table data:', currentTableData);
+
+    // Store doc tags if available
+    if (result.doc_tags) {
+        currentDocTags = result.doc_tags;
+        document.getElementById('tabDocTags').style.display = 'inline-flex';
+        console.log('[UI] Doc tags tab enabled');
+    }
+
     // Build table display
     let tableText = '';
     tableText += '='.repeat(60) + '\n';
     tableText += `📊 EXTRACTED TABLES from ${result.file_name}\n`;
     tableText += `Found ${tables.length} table${tables.length > 1 ? 's' : ''}\n`;
     tableText += '='.repeat(60) + '\n\n';
-    
+
     tables.forEach((table, idx) => {
         tableText += `\n--- Table ${idx + 1} ---\n`;
-        
+
         if (table.caption) {
             tableText += `Caption: ${table.caption}\n`;
         }
-        
+
         if (table.bbox && table.bbox.page) {
             tableText += `Page: ${table.bbox.page}\n`;
         }
-        
+
         tableText += '\n';
-        
+
         // Display table data
         const data = table.data || [];
         if (data.length > 0) {
             // Get column headers from first row
             const headers = Object.keys(data[0]);
-            
+
             // Create markdown table
             tableText += '| ' + headers.join(' | ') + ' |\n';
             tableText += '|' + headers.map(() => '---').join('|') + '|\n';
-            
+
             // Add rows
             data.forEach(row => {
                 const values = headers.map(h => (row[h] || '').toString().replace(/\n/g, ' '));
                 tableText += '| ' + values.join(' | ') + ' |\n';
             });
-            
+
             tableText += `\n(${data.length} rows)\n`;
         } else {
             tableText += '(No data)\n';
         }
-        
+
         tableText += '\n';
     });
-    
+
     if (!rawContent || !markdownContent) {
         console.error('Preview elements not found');
         return;
@@ -587,32 +683,51 @@ function displayTableResults(result) {
     resultsCount.textContent = `${tables.length} table${tables.length > 1 ? 's' : ''}`;
     resultsSection.style.display = 'block';
 
-    // Default to raw tab for tables
-    switchTab('raw');
-    
+    // Show JSON Tables tab
+    document.getElementById('tabJsonTables').style.display = 'inline-flex';
+    console.log('[UI] JSON Tables tab enabled');
+
+    // Default to JSON Tables tab for tables
+    switchTab('json-tables');
+    console.log('[UI] Switched to JSON Tables tab');
+
     showSuccess(`Extracted ${tables.length} table${tables.length > 1 ? 's' : ''} successfully!`);
     showSpinner(false);
-    
+
     // Scroll to results
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Copy text to clipboard
 async function copyText() {
-    const rawContent = document.getElementById('previewRawContent');
-    if (!rawContent) {
-        showError('Preview content not found');
+    // Get the active tab content
+    let text = '';
+
+    if (document.getElementById('previewRaw').classList.contains('active')) {
+        const rawContent = document.getElementById('previewRawContent');
+        text = rawContent ? rawContent.textContent : '';
+    } else if (document.getElementById('previewMarkdown').classList.contains('active')) {
+        const markdownContent = document.getElementById('previewMarkdownContent');
+        text = markdownContent ? markdownContent.textContent : '';
+    } else if (document.getElementById('previewJsonTables').classList.contains('active')) {
+        const jsonContent = document.getElementById('previewJsonTablesContent');
+        text = jsonContent ? jsonContent.textContent : '';
+    } else if (document.getElementById('previewDocTags').classList.contains('active')) {
+        const jsonContent = document.getElementById('previewDocTagsContent');
+        text = jsonContent ? jsonContent.textContent : '';
+    }
+
+    if (!text) {
+        showError('No content to copy');
         return;
     }
-    
-    const text = rawContent.textContent;
-    
+
     try {
         await navigator.clipboard.writeText(text);
-        showSuccess('Text copied to clipboard!');
+        showSuccess('Content copied to clipboard!');
     } catch (error) {
         console.error('Copy error:', error);
-        showError('Failed to copy text');
+        showError('Failed to copy content');
     }
 }
 
@@ -714,6 +829,14 @@ function showSpinner(show) {
 function hideResults() {
     const resultsSection = document.getElementById('resultsSection');
     resultsSection.style.display = 'none';
+
+    // Hide additional tabs (but keep Doc Tags hidden until new results)
+    document.getElementById('tabJsonTables').style.display = 'none';
+    document.getElementById('tabDocTags').style.display = 'none';
+
+    // Clear stored data
+    currentTableData = null;
+    currentDocTags = null;
 }
 
 function showMessage(message, type) {

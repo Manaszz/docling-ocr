@@ -66,11 +66,12 @@ async def extract_tables(
             temp_file_path = Path(tmp_file.name)
         
         # Extract tables
-        tables = converter.extract_tables(temp_file_path)
-        
+        result = converter.extract_tables(temp_file_path)
+
         return TableExtractionResult(
             file_name=file.filename,
-            tables=tables,
+            tables=result["tables"],
+            doc_tags=result.get("doc_tags"),
         )
     
     except HTTPException:

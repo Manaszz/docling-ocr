@@ -12,6 +12,13 @@
 
 ### Critical Implementation Patterns
 
+#### 0. Environment Configuration
+**Pattern**: Use .env file for all configuration, never commit secrets to Git
+- Create `.env` file with all required variables (see env.example)
+- .env files are automatically excluded by .gitignore
+- Use OpenRouter API for VLM pipeline with proper API key
+- All variables load automatically with `docker-compose up`
+
 #### 1. API Response Consistency
 **Pattern**: All endpoints return consistent response structures
 ```python
@@ -336,6 +343,10 @@ def safe_process_file(upload_file: UploadFile):
 - [ ] Includes tests for new functionality
 
 This `.cursorrules` file captures the essential patterns, preferences, and intelligence accumulated during Docling OCR development. Use it as a reference for maintaining consistency and quality in future development work.
+
+
+
+
 
 
 

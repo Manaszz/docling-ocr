@@ -225,7 +225,9 @@ class DoclingConverterService:
             elif output_format == "html":
                 text = result.document.export_to_html()
             elif output_format == "json":
-                text = result.document.export_to_json()
+                # Docling doesn't have export_to_json, use dict and serialize to JSON
+                import json
+                text = json.dumps(result.document.export_to_dict(), indent=2, ensure_ascii=False)
             elif output_format == "doctags":
                 text = result.document.export_to_doctags()
             else:
@@ -239,6 +241,13 @@ class DoclingConverterService:
             # Extract metadata
             metadata = self._extract_metadata(result)
 
+            # Always extract doc tags (structured document data)
+            doc_tags = None
+            try:
+                doc_tags = result.document.export_to_dict() if hasattr(result.document, 'export_to_dict') else result.export_to_dict()
+            except Exception as e:
+                logger.warning(f"Could not extract doc tags: {e}")
+
             # Log conversion completion
             logger.info(f"File conversion completed", extra={
                 "pipeline": self.pipeline_mode,
@@ -246,12 +255,14 @@ class DoclingConverterService:
                 "output_format": output_format,
                 "text_length": len(text),
                 "page_count": metadata.get("num_pages", 0),
-                "processing_time": metadata.get("processing_time", 0)
+                "processing_time": metadata.get("processing_time", 0),
+                "has_doc_tags": doc_tags is not None
             })
 
             return {
                 "text": text,
                 "metadata": metadata,
+                "doc_tags": doc_tags,
             }
         
         except Exception as e:
@@ -377,20 +388,20 @@ class DoclingConverterService:
             except Exception as e:
                 logger.warning(f"Failed to delete temp file {tmp_path}: {e}")
     
-    def extract_tables(self, file_path: str | Path) -> List[Dict[str, Any]]:
+    def extract_tables(self, file_path: str | Path) -> Dict[str, Any]:
         """
-        Extract tables from a document
-        
+        Extract tables and document tags from a document
+
         Args:
             file_path: Path to file
-        
+
         Returns:
-            List of table dictionaries
+            Dictionary with tables and doc_tags
         """
         try:
             file_path = Path(file_path)
             result = self._converter.convert(str(file_path))
-            
+
             tables = []
             for table in result.document.tables:
                 tables.append({
@@ -398,9 +409,20 @@ class DoclingConverterService:
                     "caption": getattr(table, "caption", ""),
                     "bbox": getattr(table, "bbox", None),
                 })
-            
-            return tables
-        
+
+            # Get document tags
+            doc_tags = None
+            if hasattr(result.document, 'export_to_dict') or hasattr(result, 'export_to_dict'):
+                try:
+                    doc_tags = result.document.export_to_dict() if hasattr(result.document, 'export_to_dict') else result.export_to_dict()
+                except:
+                    pass
+
+            return {
+                "tables": tables,
+                "doc_tags": doc_tags
+            }
+
         except Exception as e:
             logger.error(f"Error extracting tables from {file_path}: {e}")
             raise

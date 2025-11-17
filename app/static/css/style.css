@@ -869,6 +869,22 @@ footer a:hover {
     overflow-x: auto;
 }
 
+/* JSON Content Styles */
+.json-content {
+    padding: 24px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
 /* Dark theme adjustments for markdown */
 :root[data-theme="dark"] .markdown-content {
     color: var(--text-primary);
@@ -890,4 +906,11 @@ footer a:hover {
 
 :root[data-theme="dark"] .markdown-content table tr:nth-child(even) {
     background: var(--bg-tertiary);
+}
+
+/* Dark theme adjustments for JSON content */
+:root[data-theme="dark"] .json-content {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
 }

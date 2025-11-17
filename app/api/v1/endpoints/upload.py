@@ -26,10 +26,12 @@ async def upload_file(
     file: UploadFile = File(...),
     pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
     ocr_mode: str = Query("auto", description="OCR mode: auto (detect), always, never"),
+    output_format: str = Query("markdown", regex="^(markdown|html|json|doctags)$", description="Output format: markdown, html, json, doctags"),
+    include_doc_tags: bool = Query(True, description="Include structured document data (doc tags) in response"),
     vlm_prompt: str = Query(None, description="Custom prompt for VLM pipeline (optional)"),
 ):
     """
-    Upload and convert file to Markdown (JSON response)
+    Upload and convert file (JSON response)
 
     Accepts single file or archive. Returns conversion results as JSON.
 
@@ -37,6 +39,8 @@ async def upload_file(
         file: File to convert
         pipeline: Pipeline mode - "std" (standard) or "vlm" (Vision-Language Model)
         ocr_mode: OCR mode - "auto" (auto-detect for PDFs), "always", or "never" (only for std pipeline)
+        output_format: Output format - "markdown", "html", "json", or "doctags"
+        include_doc_tags: Include structured document data (doc tags) in response
         vlm_prompt: Custom prompt for VLM pipeline (optional, overrides default)
 
     Returns:
@@ -85,12 +89,12 @@ async def upload_file(
         
         # Check if it's an archive
         if archive_handler.is_archive(file.filename):
-            results = await _process_archive_json(temp_file_path, file.filename, pipeline, ocr_mode, vlm_prompt)
+            results = await _process_archive_json(temp_file_path, file.filename, pipeline, ocr_mode, output_format, include_doc_tags, vlm_prompt)
         elif converter.is_supported_file(file.filename):
             # Convert single file
             result_data = converter.convert_with_auto_ocr(
                 temp_file_path,
-                output_format=settings.default_output_format,
+                output_format=output_format,
                 ocr_mode=ocr_mode
             )
 
@@ -106,6 +110,7 @@ async def upload_file(
                 file_extension=suffix,
                 file_text=result_data["text"],
                 metadata=metadata,
+                doc_tags=result_data.get("doc_tags") if include_doc_tags else None,
                 pipeline_used=pipeline,
             )]
         else:
@@ -235,6 +240,8 @@ async def _process_archive_json(
     filename: str,
     pipeline: str = "std",
     ocr_mode: str = "auto",
+    output_format: str = "markdown",
+    include_doc_tags: bool = True,
     vlm_prompt: str = None
 ) -> List[ConversionResult]:
     """Process archive and return JSON results"""
@@ -277,7 +284,7 @@ async def _process_archive_json(
                 # Always use convert_with_auto_ocr for consistent result structure
                 result_data = converter.convert_with_auto_ocr(
                     file_path,
-                    output_format=settings.default_output_format,
+                    output_format=output_format,
                     ocr_mode=ocr_mode
                 )
 
@@ -293,6 +300,7 @@ async def _process_archive_json(
                     file_extension=file_path.suffix,
                     file_text=result_data["text"],
                     metadata=metadata,
+                    doc_tags=result_data.get("doc_tags") if include_doc_tags else None,
                     pipeline_used=pipeline,
                 ))
             except Exception as e:
