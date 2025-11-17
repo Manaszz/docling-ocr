@@ -47,7 +47,7 @@ services:
       - DOCLING_VLM_ENABLED=${DOCLING_VLM_ENABLED:-true}
       - DOCLING_VLM_API_URL=${DOCLING_VLM_API_URL:-https://openrouter.ai/api/v1/chat/completions}
       - DOCLING_VLM_API_KEY=${DOCLING_VLM_API_KEY:-your-openrouter-api-key}
-      - DOCLING_VLM_MODEL=${DOCLING_VLM_MODEL:-qwen/qwen3-vl-30b-a3b-thinking}
+      - DOCLING_VLM_MODEL=${DOCLING_VLM_MODEL:-qwen/qwen3-vl-235b-a22b-instruct}
       - DOCLING_VLM_TIMEOUT=${DOCLING_VLM_TIMEOUT:-120}
       - DOCLING_VLM_TEMPERATURE=${DOCLING_VLM_TEMPERATURE:-0.0}
       - DOCLING_VLM_MAX_TOKENS=${DOCLING_VLM_MAX_TOKENS:-4096}

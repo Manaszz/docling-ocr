@@ -311,7 +311,8 @@ DOCLING_OCR_GPU=false
 
 # VLM Configuration (VLM Pipeline)
 DOCLING_VLM_ENABLED=true  # Enable VLM pipeline
-DOCLING_VLM_API_URL=http://localhost:8000/v1/chat/completions
+DOCLING_VLM_API_URL=https://openrouter.ai/api/v1/chat/completions
+DOCLING_VLM_API_KEY=your-openrouter-api-key-here
 DOCLING_VLM_MODEL=qwen/qwen3-vl-235b-a22b-instruct
 DOCLING_VLM_PROMPT=Convert this page to docling.
 
@@ -346,7 +347,7 @@ Uses Vision-Language Models for end-to-end processing:
 - Single model for entire document
 - Supports OpenAI-compatible APIs (vLLM, Ollama, OpenRouter)
 - Models: Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision, etc.
-- Default: `qwen/qwen3-vl-30b-a3b-thinking` via OpenRouter
+- Default: `qwen/qwen3-vl-235b-a22b-instruct` via OpenRouter
 - Customizable prompts: Use `?vlm_prompt=custom prompt` for specialized instructions
 
 **Best for**: Complex documents, experimental use, custom models, specialized document types
