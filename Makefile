@@ -37,14 +37,31 @@ run-dev: ## Run with hot reload (development)
 bump-version: ## Increment patch version
 	@$(PYTHON) scripts/bump_version.py
 
-build: bump-version ## Build Docker image (auto-increments version)
+build: bump-version ## Build lightweight image (uses host models)
+	@echo "Building lightweight image (models from host)..."
 	docker-compose build
 
-up: ## Start Docker containers
+build-standalone: bump-version ## Build standalone image (models embedded)
+	@echo "Building standalone image (models embedded - takes ~10-15 min)..."
+	docker-compose -f docker-compose.standalone.yml build
+
+build-fast: ## Build without cache (force rebuild all)
+	docker-compose build --no-cache
+
+build-quick: ## Quick rebuild (uses cache)
+	docker-compose build
+
+up: ## Start Docker containers (lightweight mode)
 	docker-compose up -d
+
+up-standalone: ## Start standalone container
+	docker-compose -f docker-compose.standalone.yml up -d
 
 down: ## Stop Docker containers
 	docker-compose down
+
+down-standalone: ## Stop standalone container
+	docker-compose -f docker-compose.standalone.yml down
 
 logs: ## View Docker logs
 	docker-compose logs -f
@@ -79,6 +96,11 @@ clean-all: clean ## Clean everything including venv and models
 	@echo "Deep cleaning..."
 	rm -rf $(VENV) models/* offline-deploy
 	@echo "Clean complete!"
+
+clean-docker: ## Clean Docker cache and dangling images
+	@echo "Cleaning Docker cache..."
+	docker system prune -f
+	docker builder prune -f
 
 # Health check
 health: ## Check service health

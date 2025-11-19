@@ -1,12 +1,17 @@
+# Standalone docker-compose for images from registry
+# Use this when running image with embedded models (e.g., pulled from Docker Hub)
+# Build: docker-compose -f docker-compose.standalone.yml build
+# Run: docker-compose -f docker-compose.standalone.yml up -d
+
 version: '3.8'
 
 services:
   docling-ocr:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: docling-ocr:${VERSION:-latest}
-    container_name: docling-ocr
+      dockerfile: Dockerfile.standalone
+    image: docling-ocr:${VERSION:-standalone}
+    container_name: docling-ocr-standalone
     restart: unless-stopped
     ports:
       - "${PORT:-8002}:8002"
@@ -29,7 +34,7 @@ services:
       - TEMP_FILES_TTL=${TEMP_FILES_TTL:-3600}
       
       # Docling Configuration
-      # IMPORTANT: Path points to mounted models from host
+      # Models are embedded in image, no mount needed
       - DOCLING_ARTIFACTS_PATH=${DOCLING_ARTIFACTS_PATH:-/app/models}
       - DOCLING_PIPELINE_MODE=${DOCLING_PIPELINE_MODE:-standard}
       
@@ -74,11 +79,8 @@ services:
       - TEMP_DIR=/app/temp
     
     volumes:
-      # Mount temp directory for persistent storage if needed
+      # Only mount temp and logs, NOT models (they're in the image)
       - ./temp:/app/temp
-      # Mount models directory from host (lightweight deployment)
-      - ./models:/app/models
-      # Optional: mount logs
       - ./logs:/app/logs
     
     healthcheck:
@@ -94,3 +96,4 @@ services:
 networks:
   docling-ocr-network:
     driver: bridge
+
