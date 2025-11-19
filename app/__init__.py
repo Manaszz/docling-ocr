@@ -3,5 +3,5 @@ Docling OCR API
 API for converting documents to Markdown using Docling
 """
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 

@@ -30,6 +30,7 @@ services:
       
       # Docling Configuration
       # IMPORTANT: Path points to mounted models from host
+      # Docling expects this to be the parent directory containing ds4sd--* model folders
       - DOCLING_ARTIFACTS_PATH=${DOCLING_ARTIFACTS_PATH:-/app/models}
       - DOCLING_PIPELINE_MODE=${DOCLING_PIPELINE_MODE:-standard}
       

@@ -159,6 +159,12 @@ function updateStatusBar(status) {
     const ocrStatus = document.getElementById('ocrStatus');
     const modelsStatus = document.getElementById('modelsStatus');
     const ocrToggle = document.getElementById('ocrToggle');
+    const appVersionEl = document.getElementById('appVersion');
+
+    // Update version in footer
+    if (appVersionEl && status.version) {
+        appVersionEl.textContent = `v${status.version}`;
+    }
 
     // Update pipeline display
     const pipelineText = status.pipeline_mode === 'standard' ? 'Standard' :
