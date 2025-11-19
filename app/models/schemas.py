@@ -34,6 +34,10 @@ class ConversionResult(BaseModel):
         None,
         description="Structured document data (always available)"
     )
+    docling_document: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Serialized DoclingDocument for semantic chunking"
+    )
     pipeline_used: Optional[str] = Field(None, description="Pipeline used for conversion (std/vlm)")
 
 

@@ -248,6 +248,15 @@ class DoclingConverterService:
             except Exception as e:
                 logger.warning(f"Could not extract doc tags: {e}")
 
+            # Serialize DoclingDocument for semantic chunking
+            docling_document = None
+            try:
+                # Serialize the complete document with all structural information
+                docling_document = result.document.export_to_dict()
+                logger.debug(f"Serialized DoclingDocument with {len(docling_document.get('pages', []))} pages")
+            except Exception as e:
+                logger.warning(f"Could not serialize DoclingDocument: {e}")
+
             # Log conversion completion
             logger.info(f"File conversion completed", extra={
                 "pipeline": self.pipeline_mode,
@@ -256,13 +265,15 @@ class DoclingConverterService:
                 "text_length": len(text),
                 "page_count": metadata.get("num_pages", 0),
                 "processing_time": metadata.get("processing_time", 0),
-                "has_doc_tags": doc_tags is not None
+                "has_doc_tags": doc_tags is not None,
+                "has_docling_document": docling_document is not None
             })
 
             return {
                 "text": text,
                 "metadata": metadata,
                 "doc_tags": doc_tags,
+                "docling_document": docling_document,
             }
         
         except Exception as e:

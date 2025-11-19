@@ -111,6 +111,7 @@ async def parse_documents(
                     file_text=result_data["text"],
                     metadata=result_data.get("metadata"),
                     doc_tags=result_data.get("doc_tags") if include_doc_tags else None,
+                    docling_document=result_data.get("docling_document") if include_doc_tags else None,
                     pipeline_used=pipeline,
                 ))
                 
@@ -316,6 +317,7 @@ async def _process_archive_bytes_json(
                     file_text=result_data["text"],
                     metadata=result_data.get("metadata"),
                     doc_tags=result_data.get("doc_tags") if include_doc_tags else None,
+                    docling_document=result_data.get("docling_document") if include_doc_tags else None,
                     pipeline_used=pipeline,
                 ))
             except Exception as e:
