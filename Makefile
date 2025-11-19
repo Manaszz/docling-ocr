@@ -34,7 +34,10 @@ run-dev: ## Run with hot reload (development)
 	./$(VENV)/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port $(PORT)
 
 # Docker commands
-build: ## Build Docker image
+bump-version: ## Increment patch version
+	@$(PYTHON) scripts/bump_version.py
+
+build: bump-version ## Build Docker image (auto-increments version)
 	docker-compose build
 
 up: ## Start Docker containers
@@ -96,4 +99,3 @@ quick-test: ## Quick API test
 	@rm /tmp/test_docling.txt
 
 .DEFAULT_GOAL := help
-

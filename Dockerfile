@@ -46,9 +46,13 @@ ENV PYTHONPATH=/root/.local/lib/python3.11/site-packages:$PYTHONPATH
 # Copy application code
 COPY app /app/app
 COPY env.example /app/env.example
+COPY scripts /app/scripts
 
 # Create necessary directories
 RUN mkdir -p /app/temp /app/models /app/logs
+
+# Download Docling models during build
+RUN python3 /app/scripts/download_models.py -o /app/models
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -68,4 +72,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 # Run application with environment variable support
 CMD ["/bin/sh", "-c", "/root/.local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers ${WORKERS:-4}"]
-
