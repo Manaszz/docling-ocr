@@ -111,7 +111,7 @@ Organizations dealing with document processing face significant challenges:
 
 ### For Developers
 - **Easy Migration**: Drop-in replacement for MiD-OCR
-- **Rich Features**: Advanced OCR, table extraction, RAG support
+- **Rich Features**: Advanced OCR, table extraction, RAG support, semantic structure access
 - **Well-Documented**: Comprehensive API docs and examples
 - **Production Ready**: Robust error handling and monitoring
 
@@ -158,11 +158,13 @@ Docling OCR positions as:
 3. **Migration-Friendly**: Zero-break compatibility with MiD-OCR
 4. **On-Premise Focus**: Complete air-gapped capability
 5. **Production Features**: Monitoring, logging, Docker deployment
-6. **RAG-Ready**: Built-in chunking and metadata extraction
+6. **RAG-Ready**: Built-in chunking, metadata extraction, and full document structure access
 
 ---
 
 **Document Purpose**: Defines the problems we solve and user value propositions that guide product decisions and feature prioritization.
+
+
 
 
 

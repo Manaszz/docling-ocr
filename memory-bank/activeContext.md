@@ -1,8 +1,8 @@
 # Active Context: Docling OCR API
 
-**Current Date**: November 6, 2025
+**Current Date**: November 19, 2025
 **Project Status**: Production Ready (v1.0.0)
-**Last Updated**: November 6, 2025
+**Last Updated**: November 19, 2025
 
 ## Current Work Focus
 
@@ -11,8 +11,8 @@
 #### 1. Memory Bank Initialization
 **Status**: ✅ **IN PROGRESS**
 - **Goal**: Establish comprehensive project documentation foundation
-- **Current Task**: Creating initial Memory Bank structure and files
-- **Completion Criteria**: All 6 core Memory Bank files created and populated
+- **Current Task**: Updating Memory Bank with recent changes from develop branch
+- **Completion Criteria**: All 6 core Memory Bank files updated and aligned with code
 
 #### 2. Production Readiness Verification
 **Status**: ✅ **COMPLETE**
@@ -64,6 +64,13 @@
 - **Implementation**: Updated upload, parse, and pipeline endpoints
 - **Impact**: Better error messages and processing options
 - **Status**: ✅ Complete with backward compatibility
+
+#### 6. Docling Document Serialization (November 19, 2025)
+**Decision**: Exposed full DoclingDocument structure in API response
+- **Rationale**: Enable downstream applications to access full document structure (e.g., for semantic chunking)
+- **Implementation**: Updated `ConversionResult` schema and `parse` endpoint to return serialized `docling_document`
+- **Impact**: Enhanced capabilities for RAG and advanced document processing
+- **Status**: ✅ Complete and deployed
 
 ## Active Decisions & Considerations
 
@@ -133,14 +140,14 @@
 #### 1. Memory Bank Completion
 **Priority**: HIGH
 - **Task**: Complete all Memory Bank files and validation
-- **Timeline**: Complete by November 10, 2025
+- **Timeline**: Complete by November 20, 2025
 - **Owner**: Development team
 - **Success Criteria**: All files created, cross-referenced, and accurate
 
 #### 2. Documentation Review
 **Priority**: MEDIUM
 - **Task**: Review and update all documentation files
-- **Timeline**: Complete by November 15, 2025
+- **Timeline**: Complete by November 25, 2025
 - **Owner**: Technical writer
 - **Success Criteria**: All docs current and comprehensive
 
@@ -323,12 +330,3 @@ return ConversionResponse(
 ---
 
 **Document Purpose**: Tracks current development focus, recent decisions, and immediate priorities. Updated frequently to maintain project momentum and direction.
-
-
-
-
-
-
-
-
-

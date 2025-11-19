@@ -122,6 +122,25 @@ class Settings(BaseSettings):
 }
 ```
 
+### 7. Response Standardization Pattern
+**Decision**: Consistent response envelope with metadata and structure extension
+
+**Pattern**:
+```json
+{
+  "file_name": "doc.pdf",
+  "file_text": "# Content...",
+  "metadata": {...},
+  "doc_tags": {...},
+  "docling_document": {...}
+}
+```
+
+**Rationale**:
+- `doc_tags`: Easy access to structured data
+- `docling_document`: Full serialization for advanced processing (RAG/Chunking)
+- `metadata`: Processing stats and document info
+
 ## Design Patterns Implemented
 
 ### 1. Dependency Injection
@@ -317,6 +336,8 @@ Exception → Error Response → Logging
 ---
 
 **Document Purpose**: Defines the system's architectural patterns, design decisions, and implementation approaches that ensure consistency and maintainability.
+
+
 
 
 

@@ -41,6 +41,7 @@
   - Document chunking for vector databases
   - Metadata extraction
   - Structured table data export
+  - Semantic structure access (DoclingDocument)
   - Multiple output formats (Markdown, HTML, JSON, DocTags)
 
 - **Production Features**
@@ -289,12 +290,13 @@ All endpoints return JSON with the following structure:
     "tables": [...],
     "pictures": [...]
   },
+  "docling_document": { ... },
   "pipeline_used": "std"
 }
 ```
 
 **Notes:**
-- `doc_tags` field is included only when `include_doc_tags=true` (default)
+- `doc_tags` and `docling_document` fields are included only when `include_doc_tags=true` (default)
 - `output_format` affects the format of `file_text` content
 - Table extraction endpoints return additional `tables` field with structured table data
 
