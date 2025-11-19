@@ -100,8 +100,11 @@ class DoclingConverterService:
         )
         
         # Set artifacts path if provided
-        if self.artifacts_path:
-            pipeline_options.artifacts_path = self.artifacts_path
+        # NOTE: We disable this for now because Docling treats this path as a specific model path
+        # instead of a root directory, causing "Missing safe tensors file" errors.
+        # Instead, we rely on mounting models to the default cache directory (~/.cache/docling/models).
+        # if self.artifacts_path:
+        #     pipeline_options.artifacts_path = self.artifacts_path
         
         # Configure OCR engine
         if ocr_enabled and ocr_engine == "easyocr":
