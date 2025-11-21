@@ -46,7 +46,7 @@
 
 - **Production Features**
   - Archive support (ZIP, RAR, 7Z)
-  - Docker deployment
+  - Docker deployment (Layered, CPU/GPU, Offline)
   - On-premise/air-gapped environment support
   - RESTful API with OpenAPI documentation
   - Modern web UI
@@ -67,6 +67,8 @@
 
 ### Docker (Recommended)
 
+We use a **layered build strategy** for faster builds and smaller images.
+
 ```bash
 # 1. Clone repository
 git clone <repository-url>
@@ -75,13 +77,18 @@ cd docling-ocr
 # 2. Create environment file
 cp env.example .env
 
-# 3. Build and run
-docker-compose up -d
+# 3. Build and run (Linux/Mac)
+./build_layered.sh
+
+# 3. Build and run (Windows)
+build_layered.bat
 
 # 4. Access service
 # Web UI: http://localhost:8002
 # API Docs: http://localhost:8002/docs
 ```
+
+For GPU support or offline deployment, see [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md).
 
 ### Local Installation
 
@@ -440,7 +447,7 @@ See `examples/` directory:
 ## 📚 Documentation
 
 - [Installation Guide](INSTALLATION.md)
-- [Deployment Guide](DEPLOYMENT.md)
+- [Deployment Guide](DOCKER_DEPLOYMENT.md)
 - [On-Premise Deployment](ON_PREMISE_DEPLOYMENT.md)
 - [VLM Setup Guide](VLM_SETUP.md)
 - [Migration from MiD-OCR](MIGRATION_FROM_MID.md)
@@ -470,4 +477,3 @@ MIT License - see [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ using Docling**
-
