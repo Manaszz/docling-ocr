@@ -4,7 +4,7 @@ services:
   docling-ocr:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.app
     image: docling-ocr:${VERSION:-latest}
     container_name: docling-ocr
     restart: unless-stopped
@@ -29,8 +29,8 @@ services:
       - TEMP_FILES_TTL=${TEMP_FILES_TTL:-3600}
       
       # Docling Configuration
-      # Models are mounted to the default cache directory
       - DOCLING_PIPELINE_MODE=${DOCLING_PIPELINE_MODE:-standard}
+      - DOCLING_ARTIFACTS_PATH=/app/models
       
       # OCR Configuration
       - DOCLING_OCR_ENABLED=${DOCLING_OCR_ENABLED:-true}
@@ -73,11 +73,8 @@ services:
       - TEMP_DIR=/app/temp
     
     volumes:
-      # Mount temp directory for persistent storage if needed
       - ./temp:/app/temp
-      # Mount models directory from host to default Docling cache
-      - ./models:/root/.cache/docling/models
-      # Optional: mount logs
+      - ./models:/app/models
       - ./logs:/app/logs
     
     healthcheck:

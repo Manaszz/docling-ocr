@@ -19,12 +19,10 @@ COPY scripts /app/scripts
 # Настройка переменных окружения
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-# Отключаем GPU по умолчанию (для CPU версии). Переопределяется в docker-compose
+# Отключаем GPU по умолчанию (для CPU версии)
 ENV DOCLING_OCR_GPU=false
-
-# УДАЛЕНО: DOCLING_ARTIFACTS_PATH
-# Позволяем Docling использовать стандартный путь кэша (~/.cache/docling/models)
-# Это решает проблему "Missing safe tensors file" при правильном монтировании
+# Путь к моделям (предполагается монтирование volume)
+ENV DOCLING_ARTIFACTS_PATH=/app/models
 
 # Порт
 EXPOSE 8002
@@ -35,3 +33,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 # Запуск
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "4"]
+

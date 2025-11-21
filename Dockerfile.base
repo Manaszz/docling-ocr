@@ -1,0 +1,48 @@
+# Базовый образ с зависимостями (Heavy Dependencies Layer)
+# Этот образ собирается РЕДКО (только при изменении requirements.txt)
+# Он содержит все тяжелые библиотеки (Torch, Docling, OCR)
+#
+# Build CPU: docker build -t docling-ocr-base:latest -f Dockerfile.base .
+# Build GPU: docker build -t docling-ocr-base:latest --build-arg TORCH_DEVICE=gpu -f Dockerfile.base .
+
+FROM python:3.11-slim
+
+# Аргументы для настройки pip в закрытом контуре
+ARG PIP_INDEX_URL
+ARG PIP_TRUSTED_HOST
+ARG PIP_EXTRA_INDEX_URL
+# cpu или gpu
+ARG TORCH_DEVICE=cpu
+
+WORKDIR /app
+
+# Устанавливаем системные зависимости
+# build-essential и git нужны для установки некоторых python пакетов
+# libgl1... нужны для OpenCV и работы с PDF
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+# 1. Устанавливаем PyTorch (самый тяжелый компонент)
+RUN if [ "$TORCH_DEVICE" = "cpu" ]; then \
+        pip install --no-cache-dir torch torchvision torchaudio --index-url ${PIP_INDEX_URL:-https://download.pytorch.org/whl/cpu}; \
+    else \
+        # Для GPU версии используем стандартный индекс или переданный аргумент
+        pip install --no-cache-dir torch torchvision torchaudio; \
+    fi
+
+# 2. Устанавливаем остальные зависимости
+# Используем переданные аргументы для зеркала PIP
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Создаем структуру директорий
+RUN mkdir -p /app/temp /app/models /app/logs
+

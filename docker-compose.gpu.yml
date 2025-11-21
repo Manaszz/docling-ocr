@@ -1,17 +1,12 @@
-# Standalone docker-compose for images from registry
-# Use this when running image with embedded models (e.g., pulled from Docker Hub)
-# Build: docker-compose -f docker-compose.standalone.yml build
-# Run: docker-compose -f docker-compose.standalone.yml up -d
-
 version: '3.8'
 
 services:
   docling-ocr:
     build:
       context: .
-      dockerfile: Dockerfile.standalone
-    image: docling-ocr:${VERSION:-standalone}
-    container_name: docling-ocr-standalone
+      dockerfile: Dockerfile.app
+    image: docling-ocr:${VERSION:-latest}
+    container_name: docling-ocr
     restart: unless-stopped
     ports:
       - "${PORT:-8002}:8002"
@@ -34,15 +29,14 @@ services:
       - TEMP_FILES_TTL=${TEMP_FILES_TTL:-3600}
       
       # Docling Configuration
-      # Models are embedded in image, no mount needed
-      - DOCLING_ARTIFACTS_PATH=${DOCLING_ARTIFACTS_PATH:-/app/models}
       - DOCLING_PIPELINE_MODE=${DOCLING_PIPELINE_MODE:-standard}
+      - DOCLING_ARTIFACTS_PATH=/app/models
       
       # OCR Configuration
       - DOCLING_OCR_ENABLED=${DOCLING_OCR_ENABLED:-true}
       - DOCLING_OCR_ENGINE=${DOCLING_OCR_ENGINE:-easyocr}
       - DOCLING_OCR_LANGUAGES=${DOCLING_OCR_LANGUAGES:-en,ru}
-      - DOCLING_OCR_GPU=${DOCLING_OCR_GPU:-false}
+      - DOCLING_OCR_GPU=${DOCLING_OCR_GPU:-true}
       - DOCLING_OCR_FORCE_FULL_PAGE=${DOCLING_OCR_FORCE_FULL_PAGE:-false}
       
       # Table Processing
@@ -79,8 +73,8 @@ services:
       - TEMP_DIR=/app/temp
     
     volumes:
-      # Only mount temp and logs, NOT models (they're in the image)
       - ./temp:/app/temp
+      - ./models:/app/models
       - ./logs:/app/logs
     
     healthcheck:
@@ -93,7 +87,15 @@ services:
     networks:
       - docling-ocr-network
 
+    # GPU Configuration for Docker Compose v1.28+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
 networks:
   docling-ocr-network:
     driver: bridge
-

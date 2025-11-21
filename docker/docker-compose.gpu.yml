@@ -30,7 +30,7 @@ services:
       
       # Docling Configuration
       - DOCLING_PIPELINE_MODE=${DOCLING_PIPELINE_MODE:-standard}
-      - DOCLING_ARTIFACTS_PATH=/app/models
+      # УДАЛЕНО: DOCLING_ARTIFACTS_PATH (используем дефолтный кэш)
       
       # OCR Configuration
       - DOCLING_OCR_ENABLED=${DOCLING_OCR_ENABLED:-true}
@@ -74,7 +74,9 @@ services:
     
     volumes:
       - ../temp:/app/temp
-      - ../models:/app/models
+      # ВАЖНО: Монтируем модели в стандартный путь кэша Docling
+      # Это позволяет библиотеке самой находить нужные файлы
+      - ../models:/root/.cache/docling/models
       - ../logs:/app/logs
     
     healthcheck:
