@@ -1,0 +1,88 @@
+# Standalone Dockerfile with embedded models
+# Build: docker build -t docling-ocr:standalone -f Dockerfile.standalone .
+# For deployment to registries or air-gapped environments
+
+FROM python:3.11-slim as builder
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first (for better caching)
+COPY requirements.txt .
+
+# Install Python dependencies (this layer will be cached)
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+
+# Model downloader stage
+FROM python:3.11-slim as model-downloader
+
+WORKDIR /app
+
+# Copy only what's needed for model download
+COPY --from=builder /root/.local /root/.local
+COPY scripts/download_models.py /app/scripts/download_models.py
+
+# Set PATH for installed packages
+ENV PATH=/root/.local/bin:$PATH
+
+# Download models (this layer will be cached unless script changes)
+RUN python3 /app/scripts/download_models.py -o /app/models
+
+
+# Final stage
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime system dependencies (cached layer)
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    poppler-utils \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder (cached if requirements.txt unchanged)
+COPY --from=builder /root/.local /root/.local
+
+# Copy pre-downloaded models (cached if download_models.py unchanged)
+COPY --from=model-downloader /app/models /app/models
+
+# Make sure scripts in .local are usable
+ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONPATH=/root/.local/lib/python3.11/site-packages:$PYTHONPATH
+
+# Copy application code (changes frequently, so last)
+COPY app /app/app
+COPY env.example /app/env.example
+COPY scripts /app/scripts
+
+# Create necessary directories
+RUN mkdir -p /app/temp /app/logs
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Expose port
+EXPOSE 8002
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8002/ocr/docling/health || exit 1
+
+# Run application with environment variable support
+CMD ["/bin/sh", "-c", "/root/.local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers ${WORKERS:-4}"]
+

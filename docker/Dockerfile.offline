@@ -1,0 +1,46 @@
+# Полностью оффлайн Dockerfile
+# Использует локальные whl файлы, скачанные заранее
+# Build: docker build -t docling-ocr:offline -f Dockerfile.offline .
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Системные зависимости всё равно нужны (glibc, etc)
+# В полностью закрытом контуре вам придется использовать готовый образ
+# или настраивать локальный apt mirror.
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    poppler-utils \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копируем папку с пакетами (созданную скриптом scripts/download_offline_wheels.py)
+COPY offline_packages /packages
+
+# Устанавливаем из локальной папки
+# --no-index: Не ходить в интернет
+# --find-links: Искать в папке /packages
+RUN pip install --no-cache-dir --no-index --find-links=/packages torch torchvision torchaudio && \
+    pip install --no-cache-dir --no-index --find-links=/packages -r /packages/requirements.txt || \
+    # Fallback: если requirements.txt нет в пакетах, используем из корня, но всё равно ищем пакеты в /packages
+    pip install --no-cache-dir --no-index --find-links=/packages -r requirements.txt
+
+# Копируем код
+COPY app /app/app
+COPY env.example /app/env.example
+COPY scripts /app/scripts
+
+# Создаем папки
+RUN mkdir -p /app/temp /app/models /app/logs
+
+# Настройка
+ENV PYTHONUNBUFFERED=1
+ENV DOCLING_OCR_GPU=false
+
+EXPOSE 8002
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "4"]
+
