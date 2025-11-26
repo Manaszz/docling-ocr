@@ -79,6 +79,8 @@ services:
       - ../temp:/app/temp
       # Mount models directory from host to default Docling cache
       - ../models:/root/.cache/docling/models
+      # Mount EasyOCR models to the location where EasyOCR looks for them
+      - ../models/EasyOcr:/root/.EasyOCR/model
       # Optional: mount logs
       - ../logs:/app/logs
     

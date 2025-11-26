@@ -77,6 +77,8 @@ services:
       # ВАЖНО: Монтируем модели в стандартный путь кэша Docling
       # Это позволяет библиотеке самой находить нужные файлы
       - ../models:/root/.cache/docling/models
+      # Монтируем модели EasyOCR в стандартный путь EasyOCR
+      - ../models/EasyOcr:/root/.EasyOCR/model
       - ../logs:/app/logs
     
     healthcheck:
