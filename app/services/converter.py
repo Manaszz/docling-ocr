@@ -12,6 +12,8 @@ from docling.datamodel.pipeline_options import (
     EasyOcrOptions,
     TableFormerMode,
     TableStructureOptions,
+    AcceleratorOptions,
+    AcceleratorDevice,
 )
 from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
 from docling.pipeline.vlm_pipeline import VlmPipeline
@@ -98,6 +100,17 @@ class DoclingConverterService:
             mode=table_mode,
             do_cell_matching=do_cell_matching,
         )
+
+        # Configure Accelerator (Global GPU setting)
+        # This ensures Layout, TableFormer, and OCR all use the correct device
+        if ocr_gpu:
+            pipeline_options.accelerator_options = AcceleratorOptions(
+                num_threads=4, device=AcceleratorDevice.CUDA
+            )
+        else:
+            pipeline_options.accelerator_options = AcceleratorOptions(
+                num_threads=4, device=AcceleratorDevice.CPU
+            )
         
         # Set artifacts path if provided
         # NOTE: We disable this for now because Docling treats this path as a specific model path
