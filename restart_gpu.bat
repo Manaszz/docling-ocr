@@ -24,14 +24,13 @@ REM 3. Запуск с конфигом GPU
 echo.
 echo [INFO] Starting with GPU support...
 REM Останавливаем старые контейнеры
-docker-compose -f docker/docker-compose.layered.yml down 2>nul
-docker-compose -f docker/docker-compose.gpu.yml down 2>nul
+docker-compose --env-file .env -f docker/docker-compose.layered.yml down 2>nul
+docker-compose --env-file .env -f docker/docker-compose.gpu.yml down 2>nul
 
-REM Запускаем новый
-docker-compose -f docker/docker-compose.gpu.yml up -d
+REM Запускаем новый, явно указывая файл .env из корня
+docker-compose --env-file .env -f docker/docker-compose.gpu.yml up -d
 
 echo.
 echo [SUCCESS] Docling is running on GPU!
 echo Check logs to confirm: docker-compose -f docker/docker-compose.gpu.yml logs -f
 pause
-

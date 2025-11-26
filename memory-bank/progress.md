@@ -1,7 +1,7 @@
 # Progress Report: Docling OCR API
 
 **Report Date**: November 19, 2025
-**Version**: 1.0.0
+**Version**: 1.0.3
 **Status**: ✅ **PRODUCTION READY**
 
 ## Executive Summary

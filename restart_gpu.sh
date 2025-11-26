@@ -23,13 +23,12 @@ echo ""
 echo "[INFO] Starting with GPU support..."
 
 # Останавливаем старые контейнеры
-docker-compose -f docker/docker-compose.layered.yml down 2>/dev/null || true
-docker-compose -f docker/docker-compose.gpu.yml down 2>/dev/null || true
+docker-compose --env-file .env -f docker/docker-compose.layered.yml down 2>/dev/null || true
+docker-compose --env-file .env -f docker/docker-compose.gpu.yml down 2>/dev/null || true
 
-# Запускаем новый
-docker-compose -f docker/docker-compose.gpu.yml up -d
+# Запускаем новый, явно указывая файл .env
+docker-compose --env-file .env -f docker/docker-compose.gpu.yml up -d
 
 echo ""
 echo "[SUCCESS] Docling is running on GPU!"
 echo "Check logs to confirm: docker-compose -f docker/docker-compose.gpu.yml logs -f"
-

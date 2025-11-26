@@ -1,8 +1,8 @@
 # Active Context: Docling OCR API
 
-**Current Date**: November 19, 2025
-**Project Status**: Production Ready (v1.0.0)
-**Last Updated**: November 19, 2025
+**Current Date**: November 26, 2025
+**Project Status**: Production Ready (v1.0.3)
+**Last Updated**: November 26, 2025
 
 ## Current Work Focus
 
@@ -50,6 +50,7 @@
 - **Implementation**: Created `ConverterManager` class with factory pattern
 - **Impact**: Cleaner code architecture and easier maintenance
 - **Status**: ✅ Complete with comprehensive error handling
+- **Status**: ✅ Complete with comprehensive error handling
 
 #### 4. Unicode Handling Improvements (November 5, 2025)
 **Decision**: Added `UnicodeFixer` utility
@@ -71,6 +72,20 @@
 - **Implementation**: Updated `ConversionResult` schema and `parse` endpoint to return serialized `docling_document`
 - **Impact**: Enhanced capabilities for RAG and advanced document processing
 - **Status**: ✅ Complete and deployed
+
+#### 7. Docker Configuration Fix (November 21, 2025)
+**Decision**: Explicitly load `.env` file in Docker Compose
+- **Rationale**: Docker Compose v2+ doesn't automatically load .env from parent directories
+- **Implementation**: Added `env_file: - ../.env` to `docker-compose.yml`
+- **Impact**: Correctly loads environment variables (API keys, settings) from project root
+- **Status**: ✅ Complete and verified
+
+#### 8. Health Endpoint Update (November 26, 2025)
+**Decision**: Added `models_loaded` field to health check response
+- **Rationale**: UI was showing "Models: Not Found" because it expected this field which was missing from the API response
+- **Implementation**: Updated `HealthResponse` schema and `health.py` endpoint to return model loading status
+- **Impact**: UI correctly reflects model availability status
+- **Status**: ✅ Complete and verified
 
 ## Active Decisions & Considerations
 

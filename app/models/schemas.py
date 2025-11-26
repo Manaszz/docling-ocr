@@ -74,6 +74,7 @@ class HealthResponse(BaseModel):
     pipelines: Dict[str, Any] = Field(..., description="Status of available pipelines")
     ocr_enabled: bool = Field(..., description="Whether OCR is enabled in standard pipeline")
     vlm_enabled: bool = Field(..., description="Whether VLM pipeline is available")
+    models_loaded: bool = Field(..., description="Whether AI models are loaded")
 
 
 class PipelineConfig(BaseModel):

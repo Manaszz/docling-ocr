@@ -10,6 +10,8 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-8002}:8002"
+    env_file:
+      - ../.env
     environment:
       # API Configuration
       - API_VERSION=${API_VERSION:-1.0.1}

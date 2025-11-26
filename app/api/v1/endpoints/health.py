@@ -45,5 +45,6 @@ async def health_check():
         pipelines=pipeline_status,
         ocr_enabled=settings.docling_ocr_enabled,
         vlm_enabled=pipeline_status["vlm"]["available"],
+        models_loaded=pipeline_status["standard"]["loaded"],
     )
 

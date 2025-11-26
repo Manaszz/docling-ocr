@@ -81,9 +81,13 @@ docling-ocr/
 - Reduces adoption barriers
 
 ### 4. Configuration Management Pattern
-**Decision**: Environment-based configuration with Pydantic settings
+**Decision**: Environment-based configuration with Pydantic settings and explicit Docker loading
 
 **Pattern**:
+- **Local**: Auto-load from `.env` via `python-dotenv`
+- **Docker**: Explicit load via `env_file: ../.env` in compose
+- **Code**: Pydantic `BaseSettings` for validation
+
 ```python
 class Settings(BaseSettings):
     # API settings
@@ -325,6 +329,18 @@ Exception → Error Response → Logging
 **Implementation**: Comprehensive system status reporting
 **Metrics**: Pipeline status, model loading, resource usage
 
+```json
+{
+  "status": "healthy",
+  "pipelines": {
+    "std": {"available": true, "loaded": true},
+    "vlm": {"available": true, "loaded": false}
+  },
+  "models_loaded": true,
+  "ocr_enabled": true
+}
+```
+
 ### 2. Logging Pattern
 **Implementation**: Structured logging with context
 **Levels**: INFO for operations, ERROR for failures, DEBUG for development
@@ -336,14 +352,3 @@ Exception → Error Response → Logging
 ---
 
 **Document Purpose**: Defines the system's architectural patterns, design decisions, and implementation approaches that ensure consistency and maintainability.
-
-
-
-
-
-
-
-
-
-
-

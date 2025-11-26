@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # API Configuration
-    api_version: str = "1.0.2"
+    api_version: str = "1.0.3"
     api_title: str = "Docling OCR API"
     api_description: str = "API for converting documents to Markdown using Docling"
     api_prefix: str = "/ocr/docling"
