@@ -1,7 +1,7 @@
 # Active Context: Docling OCR API
 
 **Current Date**: November 26, 2025
-**Project Status**: Production Ready (v1.0.3)
+**Project Status**: Production Ready (v1.0.4)
 **Last Updated**: November 26, 2025
 
 ## Current Work Focus

@@ -56,7 +56,7 @@
 | Category | Formats |
 |----------|---------|
 | **Documents** | PDF, DOCX, DOC, TXT |
-| **Spreadsheets** | XLSX, XLS, CSV |
+| **Spreadsheets** | XLSX, XLS |
 | **Presentations** | PPTX, PPT |
 | **Web** | HTML, HTM, XML |
 | **Images** | JPG, JPEG, PNG, GIF, BMP, TIFF |
@@ -118,12 +118,16 @@ GET /ocr/docling/health
 ```json
 {
   "status": "healthy",
-  "version": "1.0.0",
-  "pipeline_mode": "standard",
+  "version": "1.0.4",
+  "default_pipeline": "std",
   "docling_version": "2.0.0",
-  "models_loaded": true,
+  "pipelines": {
+    "std": {"available": true, "loaded": true},
+    "vlm": {"available": true, "loaded": false, "enabled": false, "model": null}
+  },
   "ocr_enabled": true,
-  "vlm_enabled": false
+  "vlm_enabled": false,
+  "models_loaded": true
 }
 ```
 
@@ -241,6 +245,56 @@ curl http://localhost:8002/ocr/docling/pipeline
     "default": "std (standard pipeline)"
   }
 
+}
+```
+
+### 7. OCR Toggle (Docling-Specific)
+
+```bash
+# Enable OCR for standard pipeline
+curl -X POST "http://localhost:8002/ocr/docling/pipeline/ocr/toggle" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+
+# Disable OCR for standard pipeline
+curl -X POST "http://localhost:8002/ocr/docling/pipeline/ocr/toggle" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+**Request Body:**
+```json
+{
+  "enabled": true
+}
+```
+
+**Response:**
+```json
+{
+  "ocr_enabled": true,
+  "message": "OCR enabled for standard pipeline.",
+  "note": "Affects new requests only. Service restart recommended for full effect."
+}
+```
+
+### 8. Supported Formats (Docling-Specific)
+
+```bash
+# Get all supported file formats
+curl http://localhost:8002/ocr/docling/formats
+```
+
+**Response:**
+```json
+{
+  "input_formats": [
+    ".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls",
+    ".jpg", ".jpeg", ".png", ".tiff", ".tif", ".bmp", ".gif",
+    ".txt", ".md", ".html", ".htm", ".xml", ".epub"
+  ],
+  "output_formats": ["markdown", "html", "json", "doctags"],
+  "archive_formats": [".zip", ".rar", ".7z"]
 }
 ```
 

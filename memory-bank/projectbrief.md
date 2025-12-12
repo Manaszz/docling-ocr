@@ -1,7 +1,7 @@
 # Project Brief: Docling OCR API
 
 **Project Name**: Docling OCR API
-**Version**: 1.0.3
+**Version**: 1.0.4
 **Status**: Production Ready
 **Created**: November 6, 2025
 
