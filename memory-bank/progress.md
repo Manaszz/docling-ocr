@@ -1,7 +1,7 @@
 # Progress Report: Docling OCR API
 
-**Report Date**: November 19, 2025
-**Version**: 1.0.4
+**Report Date**: November 26, 2025
+**Version**: 1.1.0
 **Status**: ✅ **PRODUCTION READY**
 
 ## Executive Summary
@@ -84,6 +84,15 @@ Docling OCR API v1.0.0 is **complete and production-ready**. All core features a
 - **Advanced Options**: OCR modes, output formats
 - **Download Options**: Single MD files or ZIP archives
 - **Responsive Design**: Works on desktop and mobile
+- **Internationalization**: Multi-language support (Russian and English) with language switching
+
+#### 9. Internationalization (i18n)
+**Status**: ✅ **FULLY IMPLEMENTED**
+- **Multi-language Support**: Russian and English UI translations
+- **Language Switching**: URL parameter (`?lang=ru` or `?lang=en`) or UI selector
+- **Translation System**: JSON-based translation files with caching
+- **Configuration**: Default language via `DEFAULT_LANGUAGE` environment variable
+- **API Integration**: Health endpoint returns language information
 
 ## Implementation Quality
 

@@ -1,0 +1,258 @@
+{
+  "ui": {
+    "title": "Docling OCR",
+    "subtitle": "AI-Powered Document Conversion",
+    "pipeline": "Pipeline:",
+    "standard": "Standard",
+    "vlm": "VLM",
+    "status": {
+      "pipeline": "Pipeline:",
+      "mode": "Mode:",
+      "ocr": "OCR:",
+      "models": "Models:",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "loading": "Loading...",
+      "loaded": "Loaded",
+      "notFound": "Not Found",
+      "na": "N/A"
+    },
+    "upload": {
+      "dragFiles": "Drag files here or click to select",
+      "hint": "Supports PDF, DOCX, XLSX, images and more",
+      "filesSelected": "file(s) selected",
+      "clickConvert": "Click \"Convert\" or select different files"
+    },
+    "options": {
+      "advanced": "Advanced Options",
+      "extractTables": "Extract Tables",
+      "enableChunking": "Enable Chunking (for RAG)",
+      "outputFormat": "Output Format:",
+      "includeDocTags": "Include Doc Tags in Response",
+      "docTagsHint": "Structured document data for advanced processing",
+      "vlmPrompt": "VLM Prompt:",
+      "vlmPromptHint": "Select a preset prompt or enter custom instructions for the Vision-Language Model.",
+      "vlmPromptOptions": {
+        "custom": "Custom prompt...",
+        "default": "Default (Docling original)",
+        "markdown": "Markdown focused",
+        "ocr": "OCR to Markdown",
+        "tables": "Tables & text extraction",
+        "html": "Full HTML conversion"
+      },
+      "chunking": {
+        "modeLabel": "Chunking Mode:",
+        "chunkSizeLabel": "Chunk Size (characters):",
+        "chunkOverlapLabel": "Chunk Overlap (characters):",
+        "maxTokensLabel": "Max Tokens:",
+        "mode0": "Simple (character-based)",
+        "mode1": "Semantic (hierarchical)",
+        "mode2": "Hybrid (hierarchical + tokens)",
+        "mode0Hint": "Character-based chunking with fixed size",
+        "mode1Hint": "Semantic chunking based on document structure",
+        "mode2Hint": "Hybrid chunking: hierarchical + tokenization"
+      }
+    },
+    "buttons": {
+      "convert": "Convert Documents",
+      "copyAll": "Copy All Text",
+      "downloadSingle": "Download Single MD",
+      "downloadAll": "Download All as ZIP",
+      "toggleOCR": "Enable OCR for Scans"
+    },
+    "results": {
+      "title": "Results",
+      "files": "file(s)",
+      "tables": "table(s)",
+      "tabs": {
+        "raw": "Raw Text",
+        "preview": "Markdown Preview",
+        "jsonTables": "JSON Tables",
+        "docTags": "Doc Tags"
+      }
+    },
+    "messages": {
+      "processing": "Processing with Docling...",
+      "selectFiles": "Please select files first",
+      "converted": "All files converted successfully with Docling!",
+      "error": "Error",
+      "copied": "Content copied to clipboard!",
+      "downloadSuccess": "File downloaded!",
+      "noContent": "No content to copy",
+      "noResults": "No results to download",
+      "ocrEnabled": "OCR enabled successfully!",
+      "ocrDisabled": "OCR disabled successfully!",
+      "ocrToggleError": "Error toggling OCR",
+      "restartRequired": "Please restart service for full effect.",
+      "noTables": "No tables found in the document",
+      "tablesExtracted": "table(s) extracted successfully!",
+      "tableExtractionError": "Error extracting tables",
+      "vlmNotAvailable": "VLM pipeline is not available. Please enable it in configuration (DOCLING_VLM_ENABLED=true) and configure VLM settings."
+    },
+    "footer": {
+      "poweredBy": "Powered by",
+      "apiDocs": "API Docs",
+      "apiInfo": "API Info"
+    },
+    "documentation": {
+      "title": "Documentation & Features",
+      "sections": {
+        "overview": {
+          "title": "Overview",
+          "content": "Docling OCR is a powerful tool for converting documents to various formats using artificial intelligence. The application supports two processing pipelines that can be used simultaneously without configuration switching."
+        },
+        "pipelines": {
+          "title": "Processing Pipelines",
+          "standard": {
+            "title": "Standard Pipeline (std)",
+            "description": "Uses specialized AI models for different tasks:",
+            "features": [
+              "Document structure analysis with RT-DETR",
+              "Table structure recognition with TableFormer",
+              "OCR with EasyOCR support (multi-language, GPU acceleration)",
+              "Image classification",
+              "Code and formula detection"
+            ],
+            "bestFor": "Best for: production use, offline/on-premise deployment, reliable performance"
+          },
+          "vlm": {
+            "title": "VLM Pipeline (vlm)",
+            "description": "Uses Vision-Language models for end-to-end document processing:",
+            "features": [
+              "Single model for entire document",
+              "Support for OpenAI-compatible APIs (vLLM, Ollama, OpenRouter)",
+              "Customizable prompts for specialized tasks",
+              "Models: Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision and more"
+            ],
+            "bestFor": "Best for: complex documents, experimental use, custom models, specialized document types",
+            "note": "⚠️ Requires configuration: set DOCLING_VLM_ENABLED=true and configure VLM API settings"
+          }
+        },
+        "features": {
+          "title": "Key Features",
+          "ocr": {
+            "title": "OCR (Optical Character Recognition)",
+            "description": "Automatic detection and processing of scanned documents",
+            "modes": {
+              "auto": "auto — automatic detection of OCR necessity (recommended)",
+              "always": "always — always use OCR",
+              "never": "never — never use OCR"
+            }
+          },
+          "formats": {
+            "title": "Supported Formats",
+            "input": {
+              "title": "Input formats:",
+              "list": "PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, TXT, CSV, JSON, HTML, XML, JPG, JPEG, PNG, GIF, BMP, TIFF, EPUB"
+            },
+            "output": {
+              "title": "Output formats:",
+              "list": "Markdown, HTML, JSON (Doc Structure), DocTags"
+            },
+            "archives": {
+              "title": "Archives:",
+              "list": "ZIP, RAR, 7Z (automatic extraction and processing of all files)"
+            }
+          },
+          "advanced": {
+            "title": "Advanced Features",
+            "tables": {
+              "title": "Table Extraction",
+              "description": "Structured table extraction with row and column preservation. Available via API endpoint /extract/tables"
+            },
+            "chunking": {
+              "title": "Document Chunking (for RAG)",
+              "description": "Splitting documents into chunks for use in vector databases. Supports three modes: simple (character-based), semantic (hierarchical), and hybrid (hierarchical + tokenization)."
+            },
+            "docTags": {
+              "title": "Doc Tags (Structured Data)",
+              "description": "Complete structured document information: texts, tables, images, metadata. Useful for advanced processing and analysis."
+            }
+          }
+        },
+        "usage": {
+          "title": "Usage Options",
+          "ui": {
+            "title": "Via Web Interface",
+            "steps": [
+              "Select a file or drag it to the upload zone",
+              "Choose pipeline (Standard or VLM) in the top panel",
+              "Configure advanced options (output format, OCR mode, VLM prompt)",
+              "Click \"Convert Documents\"",
+              "View results in various tabs (Raw Text, Markdown Preview, JSON Tables, Doc Tags)",
+              "Download result as MD file or ZIP archive"
+            ]
+          },
+          "api": {
+            "title": "Via API",
+            "endpoints": {
+              "upload": {
+                "title": "POST /ocr/docling/upload",
+                "description": "Upload and convert file (JSON response)",
+                "params": "pipeline (std/vlm), ocr_mode (auto/always/never), output_format (markdown/html/json/doctags), include_doc_tags (true/false), vlm_prompt (optional)"
+              },
+              "parse": {
+                "title": "POST /ocr/docling/parse",
+                "description": "Convert base64-encoded documents (JSON response)",
+                "params": "pipeline, output_format, include_doc_tags, vlm_prompt"
+              },
+              "extractTables": {
+                "title": "POST /ocr/docling/extract/tables",
+                "description": "Extract structured tables from document",
+                "params": "pipeline"
+              },
+              "chunk": {
+                "title": "POST /ocr/docling/chunk",
+                "description": "Split document into chunks for RAG",
+                "params": "pipeline, chunking_mode (0/1/2), chunk_size (for mode=0), chunk_overlap (for mode=0), max_tokens (for mode=2)"
+              },
+              "health": {
+                "title": "GET /ocr/docling/health",
+                "description": "Check service status and pipeline availability"
+              }
+            },
+            "example": {
+              "title": "API Usage Example:",
+              "code": "curl -X POST \"http://localhost:8002/ocr/docling/upload?pipeline=std&output_format=markdown\" -F \"file=@document.pdf\""
+            }
+          },
+          "scenarios": {
+            "title": "Common Scenarios",
+            "scanned": {
+              "title": "Processing Scanned PDFs",
+              "description": "Use Standard pipeline with OCR mode 'auto' or 'always'. The system will automatically detect OCR necessity."
+            },
+            "digital": {
+              "title": "Processing Digital Documents",
+              "description": "Use Standard pipeline with OCR mode 'never' for fast processing of documents with text layer."
+            },
+            "complex": {
+              "title": "Complex Documents with Tables",
+              "description": "Use Standard pipeline with 'Extract Tables' option or VLM pipeline with table extraction prompt."
+            },
+            "batch": {
+              "title": "Batch Processing",
+              "description": "Upload a ZIP archive — all supported files will be automatically extracted and processed."
+            },
+            "rag": {
+              "title": "RAG Preparation",
+              "description": "Use 'Enable Chunking' option or API endpoint /chunk to split documents into chunks for vector databases."
+            }
+          }
+        },
+        "tips": {
+          "title": "Tips & Recommendations",
+          "list": [
+            "For best OCR quality, use Standard pipeline with GPU acceleration (if available)",
+            "VLM pipeline requires API key configuration (e.g., OpenRouter)",
+            "For large documents, use 'json' or 'doctags' output format for structured data",
+            "Archives are automatically processed — just upload ZIP/RAR/7Z file",
+            "Doc Tags contain complete structured document information — useful for programmatic processing",
+            "Use custom VLM prompts for specialized tasks (e.g., extract only tables or formulas)"
+          ]
+        }
+      }
+    }
+  }
+}
+

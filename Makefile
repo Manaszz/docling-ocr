@@ -1,4 +1,4 @@
-.PHONY: help install clean run stop restart logs test build deploy
+.PHONY: help install clean run stop restart logs test build deploy build-gpu build-gpu-base up-gpu down-gpu logs-gpu restart-gpu ps-gpu
 
 # Variables
 PYTHON=python3
@@ -51,11 +51,22 @@ build-fast: ## Build without cache (force rebuild all)
 build-quick: ## Quick rebuild (uses cache)
 	docker-compose build
 
+build-gpu: ## Build app image for GPU (requires base image)
+	@echo "Building application image for GPU..."
+	docker build -t docling-ocr:latest -f docker/Dockerfile.app .
+
+build-gpu-base: ## Build GPU base image (heavy operation, ~2-3GB download)
+	@echo "Building GPU base image (this may take a while)..."
+	docker build -t docling-ocr-base:latest --build-arg TORCH_DEVICE=gpu -f docker/Dockerfile.base .
+
 up: ## Start Docker containers (lightweight mode)
 	docker-compose up -d
 
 up-standalone: ## Start standalone container
 	docker-compose -f docker-compose.standalone.yml up -d
+
+up-gpu: ## Start Docker containers with GPU support
+	docker-compose --env-file .env -f docker/docker-compose.gpu.yml up -d
 
 down: ## Stop Docker containers
 	docker-compose down
@@ -63,14 +74,26 @@ down: ## Stop Docker containers
 down-standalone: ## Stop standalone container
 	docker-compose -f docker-compose.standalone.yml down
 
+down-gpu: ## Stop GPU containers
+	docker-compose --env-file .env -f docker/docker-compose.gpu.yml down
+
 logs: ## View Docker logs
 	docker-compose logs -f
+
+logs-gpu: ## View GPU container logs
+	docker-compose -f docker/docker-compose.gpu.yml logs -f
 
 restart: ## Restart Docker containers
 	docker-compose restart
 
+restart-gpu: down-gpu build-gpu up-gpu ## Rebuild and restart GPU containers
+	@echo "GPU containers restarted successfully!"
+
 ps: ## Show container status
 	docker-compose ps
+
+ps-gpu: ## Show GPU container status
+	docker-compose -f docker/docker-compose.gpu.yml ps
 
 # Testing
 test: ## Run tests

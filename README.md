@@ -44,12 +44,18 @@
   - Semantic structure access (DoclingDocument)
   - Multiple output formats (Markdown, HTML, JSON, DocTags)
 
+- **Internationalization (i18n)**
+  - Multi-language UI support (Russian and English)
+  - Language switching via URL parameter or UI selector
+  - Localized error messages and interface elements
+  - Configurable default language
+
 - **Production Features**
   - Archive support (ZIP, RAR, 7Z)
   - Docker deployment (Layered, CPU/GPU, Offline)
   - On-premise/air-gapped environment support
   - RESTful API with OpenAPI documentation
-  - Modern web UI
+  - Modern web UI with theme support
 
 ## 📋 Supported Formats
 
@@ -118,7 +124,7 @@ GET /ocr/docling/health
 ```json
 {
   "status": "healthy",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "default_pipeline": "std",
   "docling_version": "2.0.0",
   "pipelines": {
@@ -366,6 +372,9 @@ All endpoints return JSON with the following structure:
 Edit `.env` file to configure:
 
 ```bash
+# Localization
+DEFAULT_LANGUAGE=ru  # ru (Russian) or en (English) - default language for UI
+
 # OCR Configuration (Standard Pipeline)
 DOCLING_OCR_ENABLED=true
 DOCLING_OCR_ENGINE=easyocr
@@ -384,6 +393,8 @@ DOCLING_TABLE_MODE=accurate  # fast or accurate
 ```
 
 **Note:** Both pipelines can be used simultaneously. Select pipeline per request using `?pipeline=std` or `?pipeline=vlm`.
+
+**Language Selection:** The UI language can be changed via URL parameter `?lang=ru` or `?lang=en`, or using the language selector in the UI. The default language is configured via `DEFAULT_LANGUAGE` environment variable.
 
 See `env.example` for all options.
 
@@ -412,8 +423,18 @@ Uses Vision-Language Models for end-to-end processing:
 - Models: Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision, etc.
 - Default: `qwen/qwen3-vl-235b-a22b-instruct` via OpenRouter
 - Customizable prompts: Use `?vlm_prompt=custom prompt` for specialized instructions
+- **Requires configuration**: Set `DOCLING_VLM_ENABLED=true` and configure VLM API settings
 
 **Best for**: Complex documents, experimental use, custom models, specialized document types
+
+**⚠️ Important**: VLM pipeline is **disabled by default**. To enable it:
+1. Set `DOCLING_VLM_ENABLED=true` in `.env`
+2. Configure `DOCLING_VLM_API_URL` (e.g., `https://openrouter.ai/api/v1/chat/completions`)
+3. Set `DOCLING_VLM_API_KEY` with your API key
+4. Optionally set `DOCLING_VLM_MODEL` (default: `qwen/qwen3-vl-235b-a22b-instruct`)
+5. Restart the service
+
+If VLM is not configured, the UI will automatically prevent switching to VLM mode and show an error message.
 
 ### Usage Examples
 

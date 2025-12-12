@@ -97,8 +97,12 @@ async def extract_tables(
 async def chunk_document(
     file: UploadFile = File(...),
     pipeline: str = Query("std", regex="^(std|vlm)$", description="Pipeline mode: std (standard) or vlm"),
-    chunk_size: int = Query(1000, description="Chunk size in characters"),
-    chunk_overlap: int = Query(200, description="Overlap between chunks"),
+    chunk_size: int = Query(1000, description="Chunk size in characters (for mode=0)"),
+    chunk_overlap: int = Query(200, description="Overlap between chunks (for mode=0)"),
+    chunking_mode: int = Query(None, description="Chunking mode: 0=simple, 1=hierarchical, 2=hybrid"),
+    max_tokens: int = Query(None, description="Maximum tokens per chunk (for mode=2)"),
+    merge_list_items: bool = Query(None, description="Merge list items into single chunk (for mode=1)"),
+    merge_peers: bool = Query(None, description="Merge peer chunks in same section (for mode=2)"),
 ):
     """
     Convert and chunk document for RAG applications
@@ -108,14 +112,32 @@ async def chunk_document(
     Args:
         file: Document file
         pipeline: Pipeline mode - "std" (standard) or "vlm"
-        chunk_size: Maximum chunk size in characters
-        chunk_overlap: Overlap between consecutive chunks
+        chunk_size: Maximum chunk size in characters (for mode=0, simple chunking)
+        chunk_overlap: Overlap between consecutive chunks (for mode=0, simple chunking)
+        chunking_mode: Chunking mode - 0=simple (character-based), 1=hierarchical (semantic), 2=hybrid (hierarchical + tokens)
+        max_tokens: Maximum tokens per chunk (for mode=2, hybrid chunking)
+        merge_list_items: Merge list items into single chunk (for mode=1, hierarchical chunking)
+        merge_peers: Merge peer chunks in same section (for mode=2, hybrid chunking)
     
     Returns:
         Chunked document
     """
-    if not settings.enable_chunking and chunk_size != settings.chunk_size:
-        # Use default settings if chunking is not explicitly enabled
+    # Use default values from settings if not provided (backward compatibility)
+    if chunking_mode is None:
+        chunking_mode = settings.chunking_mode
+    
+    if max_tokens is None and chunking_mode == 2:
+        max_tokens = settings.chunking_max_tokens
+    
+    if merge_list_items is None:
+        merge_list_items = settings.chunking_merge_list_items
+    
+    if merge_peers is None:
+        merge_peers = settings.chunking_merge_peers
+    
+    # For backward compatibility: if chunking_mode is 0 and enable_chunking is False,
+    # use default chunk_size and chunk_overlap from settings
+    if chunking_mode == 0 and not settings.enable_chunking and chunk_size == 1000:
         chunk_size = settings.chunk_size
         chunk_overlap = settings.chunk_overlap
     
@@ -144,11 +166,15 @@ async def chunk_document(
             tmp_file.write(file_content)
             temp_file_path = Path(tmp_file.name)
         
-        # Chunk document
+        # Chunk document with all parameters
         chunks = converter.chunk_document(
             temp_file_path,
             chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap
+            chunk_overlap=chunk_overlap,
+            chunking_mode=chunking_mode,
+            max_tokens=max_tokens,
+            merge_list_items=merge_list_items,
+            merge_peers=merge_peers
         )
         
         return ChunkResult(

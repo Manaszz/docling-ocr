@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.models.schemas import HealthResponse
 from app.core.config import settings
 from app.services.converter_manager import get_converter_manager
+from app.utils.i18n import get_supported_languages
 from app import __version__
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ async def health_check():
         status="healthy",
         version=__version__,
         default_pipeline="std",  # Default is always standard
+        default_language=settings.default_language,
+        supported_languages=list(get_supported_languages()),
         docling_version=docling_version,
         pipelines=pipeline_status,
         ocr_enabled=settings.docling_ocr_enabled,

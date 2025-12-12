@@ -118,13 +118,30 @@ class DoclingConverterService:
         # Instead, we rely on mounting models to the default cache directory (~/.cache/docling/models).
         # if self.artifacts_path:
         #     pipeline_options.artifacts_path = self.artifacts_path
+        pipeline_options.artifacts_path = "/root/.cache/docling/models"  # Try explicit path to mounted models
         
         # Configure OCR engine
         if ocr_enabled and ocr_engine == "easyocr":
+            # Determine EasyOCR model storage path
+            # Priority: /root/.EasyOCR/model (docker mount) -> artifacts_path/EasyOcr -> default
+            easyocr_model_path = None
+            possible_paths = [
+                Path("/root/.EasyOCR/model"),  # Docker mount path
+                Path(self.artifacts_path) / "EasyOcr" if self.artifacts_path else None,
+                Path("./models/EasyOcr"),  # Local development
+            ]
+            for path in possible_paths:
+                if path and path.exists() and (path / "craft_mlt_25k.pth").exists():
+                    easyocr_model_path = str(path)
+                    logger.info(f"Using EasyOCR models from: {easyocr_model_path}")
+                    break
+            
             ocr_options = EasyOcrOptions(
                 lang=ocr_languages,
                 use_gpu=ocr_gpu,
                 force_full_page_ocr=force_full_page,
+                model_storage_directory=easyocr_model_path,
+                download_enabled=easyocr_model_path is None,  # Allow download only if no local models
             )
             pipeline_options.ocr_options = ocr_options
         
@@ -293,7 +310,13 @@ class DoclingConverterService:
             }
         
         except Exception as e:
-            logger.error(f"Error converting file {file_path}: {e}")
+            logger.error(f"Error converting file {file_path}: {e}", exc_info=True)
+            # For VLM pipeline, provide more context about the error
+            if self.pipeline_mode == "vlm":
+                error_msg = f"VLM pipeline failed: {str(e)}"
+                if hasattr(e, '__cause__') and e.__cause__:
+                    error_msg += f" (Caused by: {str(e.__cause__)})"
+                logger.error(error_msg)
             raise
     
     def convert_with_auto_ocr(
@@ -458,49 +481,289 @@ class DoclingConverterService:
         self,
         file_path: str | Path,
         chunk_size: int = 1000,
-        chunk_overlap: int = 200
+        chunk_overlap: int = 200,
+        chunking_mode: int = 0,
+        max_tokens: Optional[int] = None,
+        merge_list_items: bool = True,
+        merge_peers: bool = True
     ) -> List[Dict[str, Any]]:
         """
         Convert and chunk document for RAG
         
         Args:
             file_path: Path to file
-            chunk_size: Maximum chunk size in characters
-            chunk_overlap: Overlap between chunks
+            chunk_size: Maximum chunk size in characters (for mode=0)
+            chunk_overlap: Overlap between chunks (for mode=0)
+            chunking_mode: Chunking mode - 0=simple, 1=hierarchical, 2=hybrid
+            max_tokens: Maximum tokens per chunk (for mode=2)
+            merge_list_items: Merge list items into single chunk (for mode=1)
+            merge_peers: Merge peer chunks in same section (for mode=2)
         
         Returns:
             List of chunk dictionaries
         """
         try:
-            # Convert document
-            result = self.convert_file(file_path, output_format="markdown")
-            text = result["text"]
+            # Convert document to get DoclingDocument
+            file_path = Path(file_path)
+            result = self._converter.convert(str(file_path))
+            docling_document = result.document
             
-            # Simple chunking implementation
-            chunks = []
-            start = 0
-            chunk_id = 0
-            
-            while start < len(text):
-                end = start + chunk_size
-                chunk_text = text[start:end]
+            # Mode 0: Simple character-based chunking
+            if chunking_mode == 0:
+                text = result.document.export_to_markdown()
+                text = fix_unicode_codes(text)
                 
-                chunks.append({
-                    "chunk_id": chunk_id,
-                    "text": chunk_text,
-                    "start_char": start,
-                    "end_char": end,
-                    "metadata": result.get("metadata", {}),
-                })
+                chunks = []
+                start = 0
+                chunk_id = 0
                 
-                start = end - chunk_overlap
-                chunk_id += 1
+                while start < len(text):
+                    end = start + chunk_size
+                    chunk_text = text[start:end]
+                    
+                    chunks.append({
+                        "chunk_id": chunk_id,
+                        "text": chunk_text,
+                        "start_char": start,
+                        "end_char": end,
+                        "metadata": self._extract_metadata(result),
+                    })
+                    
+                    start = end - chunk_overlap
+                    chunk_id += 1
+                
+                return chunks
             
-            return chunks
+            # Mode 1: Hierarchical chunking (semantic)
+            elif chunking_mode == 1:
+                try:
+                    from docling.chunking import HierarchicalChunker
+                    
+                    chunker = HierarchicalChunker(merge_list_items=merge_list_items)
+                    chunk_iter = chunker.chunk(dl_doc=docling_document)
+                    
+                    chunks = []
+                    for chunk_id, chunk in enumerate(chunk_iter):
+                        # Get text from chunk without contextualization to avoid duplicate headers
+                        # Use chunk.text directly instead of contextualize() to get clean text
+                        chunk_text = getattr(chunk, 'text', None)
+                        if chunk_text is None:
+                            # Fallback: try to get text via export methods
+                            if hasattr(chunk, 'export_to_markdown'):
+                                chunk_text = chunk.export_to_markdown()
+                            elif hasattr(chunk, 'content'):
+                                chunk_text = chunk.content
+                            else:
+                                # Last resort: use contextualize but it may add headers
+                                chunk_text = chunker.contextualize(chunk=chunk)
+                        
+                        # Extract metadata from chunk
+                        chunk_metadata = {
+                            "chunk_id": chunk_id,
+                        }
+                        
+                        # Add chunk-specific metadata if available
+                        if hasattr(chunk, 'metadata'):
+                            chunk_metadata.update(chunk.metadata)
+                        
+                        # Add document metadata
+                        doc_metadata = self._extract_metadata(result)
+                        chunk_metadata.update(doc_metadata)
+                        
+                        chunks.append({
+                            "chunk_id": chunk_id,
+                            "text": chunk_text,
+                            "metadata": chunk_metadata,
+                        })
+                    
+                    logger.info(f"Hierarchical chunking produced {len(chunks)} chunks")
+                    return chunks
+                    
+                except ImportError as e:
+                    logger.error(f"HierarchicalChunker not available: {e}. Falling back to simple chunking.")
+                    # Fallback to simple chunking
+                    return self._simple_chunk(result, chunk_size, chunk_overlap)
+                except Exception as e:
+                    logger.error(f"Error in hierarchical chunking: {e}. Falling back to simple chunking.", exc_info=True)
+                    # Fallback to simple chunking
+                    return self._simple_chunk(result, chunk_size, chunk_overlap)
+            
+            # Mode 2: Hybrid chunking (hierarchical + tokens)
+            elif chunking_mode == 2:
+                try:
+                    from docling.chunking import HybridChunker
+                    
+                    # Use default max_tokens if not specified
+                    if max_tokens is None:
+                        from app.core.config import settings
+                        max_tokens = settings.chunking_max_tokens
+                    
+                    # Try to use HuggingFace tokenizer if available, otherwise use HybridChunker without tokenizer
+                    tokenizer = None
+                    try:
+                        from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
+                        from transformers import AutoTokenizer
+                        
+                        # Use a lightweight tokenizer model
+                        tokenizer_model = "sentence-transformers/all-MiniLM-L6-v2"
+                        tokenizer = HuggingFaceTokenizer(
+                            tokenizer=AutoTokenizer.from_pretrained(tokenizer_model),
+                            max_tokens=max_tokens,
+                        )
+                        logger.info(f"Using HuggingFace tokenizer with max_tokens={max_tokens}")
+                    except ImportError:
+                        logger.info("transformers not available, using HybridChunker without explicit tokenizer")
+                    except Exception as tokenizer_error:
+                        logger.warning(f"Could not load HuggingFace tokenizer: {tokenizer_error}. Using HybridChunker without explicit tokenizer.")
+                    
+                    # Initialize HybridChunker with or without tokenizer
+                    if tokenizer:
+                        chunker = HybridChunker(
+                            tokenizer=tokenizer,
+                            merge_peers=merge_peers
+                        )
+                    else:
+                        # Use HybridChunker without tokenizer (will use defaults)
+                        chunker = HybridChunker(merge_peers=merge_peers)
+                    
+                    chunk_iter = chunker.chunk(dl_doc=docling_document)
+                    
+                    chunks = []
+                    for chunk_id, chunk in enumerate(chunk_iter):
+                        # Get text from chunk without contextualization to avoid duplicate headers
+                        # Use chunk.text directly instead of contextualize() to get clean text
+                        chunk_text = getattr(chunk, 'text', None)
+                        if chunk_text is None:
+                            # Fallback: try to get text via export methods
+                            if hasattr(chunk, 'export_to_markdown'):
+                                chunk_text = chunk.export_to_markdown()
+                            elif hasattr(chunk, 'content'):
+                                chunk_text = chunk.content
+                            else:
+                                # Last resort: use contextualize but it may add headers
+                                chunk_text = chunker.contextualize(chunk=chunk)
+                        
+                        # Extract metadata from chunk
+                        chunk_metadata = {
+                            "chunk_id": chunk_id,
+                        }
+                        
+                        # Add chunk-specific metadata if available
+                        if hasattr(chunk, 'metadata'):
+                            chunk_metadata.update(chunk.metadata)
+                        
+                        # Add document metadata
+                        doc_metadata = self._extract_metadata(result)
+                        chunk_metadata.update(doc_metadata)
+                        
+                        chunks.append({
+                            "chunk_id": chunk_id,
+                            "text": chunk_text,
+                            "metadata": chunk_metadata,
+                        })
+                    
+                    logger.info(f"Hybrid chunking produced {len(chunks)} chunks")
+                    return chunks
+                    
+                except ImportError as e:
+                    logger.error(f"HybridChunker not available: {e}. Falling back to hierarchical chunking.")
+                    # Fallback to hierarchical chunking
+                    try:
+                        from docling.chunking import HierarchicalChunker
+                        chunker = HierarchicalChunker(merge_list_items=merge_list_items)
+                        chunk_iter = chunker.chunk(dl_doc=docling_document)
+                        
+                        chunks = []
+                        for chunk_id, chunk in enumerate(chunk_iter):
+                            # Get text from chunk without contextualization
+                            chunk_text = getattr(chunk, 'text', None)
+                            if chunk_text is None:
+                                if hasattr(chunk, 'export_to_markdown'):
+                                    chunk_text = chunk.export_to_markdown()
+                                elif hasattr(chunk, 'content'):
+                                    chunk_text = chunk.content
+                                else:
+                                    chunk_text = chunker.contextualize(chunk=chunk)
+                            
+                            chunk_metadata = {"chunk_id": chunk_id}
+                            if hasattr(chunk, 'metadata'):
+                                chunk_metadata.update(chunk.metadata)
+                            chunk_metadata.update(self._extract_metadata(result))
+                            chunks.append({
+                                "chunk_id": chunk_id,
+                                "text": chunk_text,
+                                "metadata": chunk_metadata,
+                            })
+                        return chunks
+                    except:
+                        # Final fallback to simple chunking
+                        return self._simple_chunk(result, chunk_size, chunk_overlap)
+                except Exception as e:
+                    logger.error(f"Error in hybrid chunking: {e}. Falling back to hierarchical chunking.", exc_info=True)
+                    # Fallback to hierarchical chunking
+                    try:
+                        from docling.chunking import HierarchicalChunker
+                        chunker = HierarchicalChunker(merge_list_items=merge_list_items)
+                        chunk_iter = chunker.chunk(dl_doc=docling_document)
+                        
+                        chunks = []
+                        for chunk_id, chunk in enumerate(chunk_iter):
+                            # Get text from chunk without contextualization
+                            chunk_text = getattr(chunk, 'text', None)
+                            if chunk_text is None:
+                                if hasattr(chunk, 'export_to_markdown'):
+                                    chunk_text = chunk.export_to_markdown()
+                                elif hasattr(chunk, 'content'):
+                                    chunk_text = chunk.content
+                                else:
+                                    chunk_text = chunker.contextualize(chunk=chunk)
+                            
+                            chunk_metadata = {"chunk_id": chunk_id}
+                            if hasattr(chunk, 'metadata'):
+                                chunk_metadata.update(chunk.metadata)
+                            chunk_metadata.update(self._extract_metadata(result))
+                            chunks.append({
+                                "chunk_id": chunk_id,
+                                "text": chunk_text,
+                                "metadata": chunk_metadata,
+                            })
+                        return chunks
+                    except:
+                        # Final fallback to simple chunking
+                        return self._simple_chunk(result, chunk_size, chunk_overlap)
+            
+            else:
+                raise ValueError(f"Invalid chunking_mode: {chunking_mode}. Must be 0, 1, or 2.")
         
         except Exception as e:
-            logger.error(f"Error chunking document {file_path}: {e}")
+            logger.error(f"Error chunking document {file_path}: {e}", exc_info=True)
             raise
+    
+    def _simple_chunk(self, result, chunk_size: int, chunk_overlap: int) -> List[Dict[str, Any]]:
+        """Helper method for simple character-based chunking"""
+        text = result.document.export_to_markdown()
+        text = fix_unicode_codes(text)
+        
+        chunks = []
+        start = 0
+        chunk_id = 0
+        
+        while start < len(text):
+            end = start + chunk_size
+            chunk_text = text[start:end]
+            
+            chunks.append({
+                "chunk_id": chunk_id,
+                "text": chunk_text,
+                "start_char": start,
+                "end_char": end,
+                "metadata": self._extract_metadata(result),
+            })
+            
+            start = end - chunk_overlap
+            chunk_id += 1
+        
+        return chunks
     
     def _extract_metadata(self, result) -> Dict[str, Any]:
         """Extract metadata from conversion result"""

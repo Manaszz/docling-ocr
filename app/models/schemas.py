@@ -70,6 +70,8 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
     default_pipeline: str = Field(..., description="Default pipeline mode (std/vlm)")
+    default_language: str = Field(..., description="Default UI language (ru/en)")
+    supported_languages: List[str] = Field(..., description="List of supported UI languages")
     docling_version: Optional[str] = Field(None, description="Docling library version")
     pipelines: Dict[str, Any] = Field(..., description="Status of available pipelines")
     ocr_enabled: bool = Field(..., description="Whether OCR is enabled in standard pipeline")

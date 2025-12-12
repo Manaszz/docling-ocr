@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="{{ language }}" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Docling OCR - Document Converter</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css">
     <!-- Markdown rendering libraries -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
@@ -15,19 +16,27 @@
     <div class="container">
         <header>
             <div class="header-content">
-                <h1>Docling OCR</h1>
-                <p class="subtitle">AI-Powered Document Conversion</p>
+                <h1 id="appTitle">Docling OCR</h1>
+                <p class="subtitle" id="appSubtitle">AI-Powered Document Conversion</p>
             </div>
             <div class="header-controls">
+                <!-- Language Selector -->
+                <div class="language-selector">
+                    <select id="languageSelect" onchange="changeLanguage()" class="language-select">
+                        <option value="ru">🇷🇺 Русский</option>
+                        <option value="en">🇺🇸 English</option>
+                    </select>
+                </div>
+
                 <!-- Pipeline Mode Toggle -->
                 <div class="pipeline-toggle">
-                    <span class="pipeline-label">Pipeline:</span>
+                    <span class="pipeline-label" id="pipelineLabel">Pipeline:</span>
                     <div class="toggle-switch">
                         <input type="checkbox" id="pipelineMode">
                         <label for="pipelineMode" class="toggle-label">
-                            <span class="toggle-option">Standard</span>
+                            <span class="toggle-option" id="toggleStandard">Standard</span>
                             <span class="toggle-slider"></span>
-                            <span class="toggle-option">VLM</span>
+                            <span class="toggle-option" id="toggleVLM">VLM</span>
                         </label>
                     </div>
                 </div>
@@ -38,26 +47,26 @@
         <!-- Status Bar -->
         <div class="status-bar" id="statusBar">
             <div class="status-item">
-                <span class="status-label">Pipeline:</span>
-                <span class="status-value" id="currentPipeline">Loading...</span>
+                <span class="status-label" data-i18n="ui.status.pipeline">Pipeline:</span>
+                <span class="status-value" id="currentPipeline" data-i18n-default="ui.status.loading">Loading...</span>
             </div>
             <div class="status-item">
-                <span class="status-label">Mode:</span>
-                <span class="status-value" id="currentMode">Loading...</span>
+                <span class="status-label" data-i18n="ui.status.mode">Mode:</span>
+                <span class="status-value" id="currentMode" data-i18n-default="ui.status.loading">Loading...</span>
             </div>
             <div class="status-item">
-                <span class="status-label">OCR:</span>
+                <span class="status-label" data-i18n="ui.status.ocr">OCR:</span>
                 <span class="status-value" id="ocrStatus">—</span>
             </div>
             <div class="status-item">
-                <span class="status-label">Models:</span>
+                <span class="status-label" data-i18n="ui.status.models">Models:</span>
                 <span class="status-value" id="modelsStatus">—</span>
             </div>
             <div class="status-item">
                 <label class="toggle-container">
                     <input type="checkbox" id="ocrToggle" onchange="toggleOCR()">
                     <span class="toggle-slider-inline"></span>
-                    <span class="toggle-text">Enable OCR for Scans</span>
+                    <span class="toggle-text" id="ocrToggleText">Enable OCR for Scans</span>
                 </label>
             </div>
         </div>
@@ -66,30 +75,58 @@
         <div class="upload-section">
             <div class="drop-zone" id="dropZone">
                 <div class="drop-zone-icon">📄</div>
-                <p class="drop-zone-text">Drag files here or click to select</p>
-                <p class="drop-zone-hint">Supports PDF, DOCX, XLSX, images and more</p>
+                <p class="drop-zone-text" id="dropZoneText">Drag files here or click to select</p>
+                <p class="drop-zone-hint" id="dropZoneHint">Supports PDF, DOCX, XLSX, images and more</p>
                 <input type="file" id="fileInput" multiple hidden accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.json,.html,.xml,.jpg,.jpeg,.png,.gif,.bmp,.tif,.tiff,.zip,.rar,.7z,.epub">
             </div>
             
             <!-- Advanced Options -->
             <details class="options-panel">
-                <summary>Advanced Options</summary>
+                <summary id="optionsSummary">Advanced Options</summary>
                 <div class="options-content">
                     <div class="option-group">
                         <label>
                             <input type="checkbox" id="extractTables">
-                            Extract Tables
+                            <span id="extractTablesLabel">Extract Tables</span>
                         </label>
                     </div>
                     <div class="option-group">
                         <label>
                             <input type="checkbox" id="enableChunking">
-                            Enable Chunking (for RAG)
+                            <span id="enableChunkingLabel">Enable Chunking (for RAG)</span>
                         </label>
+                    </div>
+                    <div class="option-group" id="chunkingOptionsGroup" style="display: none;">
+                        <label>
+                            <span id="chunkingModeLabel">Chunking Mode:</span>
+                            <select id="chunkingMode" onchange="onChunkingModeChange()">
+                                <option value="0" selected>0 - Simple (character-based)</option>
+                                <option value="1">1 - Semantic (hierarchical)</option>
+                                <option value="2">2 - Hybrid (hierarchical + tokens)</option>
+                            </select>
+                        </label>
+                        <small style="color: #666; font-size: 0.8em;" id="chunkingModeHint">Character-based chunking with fixed size</small>
+                    </div>
+                    <div class="option-group" id="simpleChunkingParams" style="display: none;">
+                        <label>
+                            <span id="chunkSizeLabel">Chunk Size (characters):</span>
+                            <input type="number" id="chunkSize" placeholder="1000" min="100" step="100" style="width: 100%;">
+                        </label>
+                        <label style="margin-top: 8px;">
+                            <span id="chunkOverlapLabel">Chunk Overlap (characters):</span>
+                            <input type="number" id="chunkOverlap" placeholder="200" min="0" step="50" style="width: 100%;">
+                        </label>
+                    </div>
+                    <div class="option-group" id="hybridChunkingParams" style="display: none;">
+                        <label>
+                            <span id="maxTokensLabel">Max Tokens:</span>
+                            <input type="number" id="maxTokens" placeholder="512" min="64" step="64" style="width: 100%;">
+                        </label>
+                        <small style="color: #666; font-size: 0.8em;">Maximum tokens per chunk for hybrid mode</small>
                     </div>
                     <div class="option-group">
                         <label>
-                            Output Format:
+                            <span id="outputFormatLabel">Output Format:</span>
                             <select id="outputFormat">
                                 <option value="markdown" selected>Markdown</option>
                                 <option value="html">HTML</option>
@@ -101,17 +138,17 @@
                     <div class="option-group">
                         <label>
                             <input type="checkbox" id="includeDocTags" checked>
-                            Include Doc Tags in Response
+                            <span id="includeDocTagsLabel">Include Doc Tags in Response</span>
                         </label>
                         <small style="color: #666; font-size: 0.8em;">Structured document data for advanced processing</small>
                     </div>
                     <div class="option-group vlm-only" id="vlmPromptGroup" style="display: none;">
                         <label>
-                            VLM Prompt:
+                            <span id="vlmPromptLabel">VLM Prompt:</span>
                             <select id="vlmPromptSelect" onchange="onPromptSelectChange()" style="width: 100%; margin-bottom: 8px;">
                                 <option value="">Custom prompt...</option>
                                 <option value="Convert this page to docling.">Default (Docling original)</option>
-                                <option value="Convert this document page to markdown format.">Markdown focused</option>
+                                <option value="Convert this document page to markdown format." selected>Markdown focused</option>
                                 <option value="OCR the full page to markdown.">OCR to Markdown</option>
                                 <option value="Extract all text and tables from this document in structured markdown format.">Tables & text extraction</option>
                                 <option value="Convert this page to a complete HTML document with semantic tables (including cross-row/col), stylized text (bold, color), LaTeX formulas, and image placeholders for all graphics.">Full HTML conversion</option>
@@ -137,13 +174,13 @@
             <div class="spinner">
                 <div class="spinner-circle"></div>
             </div>
-            <p class="spinner-text">Processing with Docling...</p>
+            <p class="spinner-text" id="spinnerText">Processing with Docling...</p>
         </div>
         
         <!-- Results Section -->
         <div class="results-section" id="resultsSection" style="display:none">
             <div class="results-header">
-                <h2>Results</h2>
+                <h2 id="resultsTitle">Results</h2>
                 <span class="results-count" id="resultsCount"></span>
             </div>
             
@@ -165,6 +202,10 @@
                     <button class="tab-button" onclick="switchTab('doc-tags')" id="tabDocTags" style="display: none;">
                         <span class="tab-icon">🏷️</span>
                         Doc Tags
+                    </button>
+                    <button class="tab-button" onclick="switchTab('chunks')" id="tabChunks" style="display: none;">
+                        <span class="tab-icon">📦</span>
+                        Chunks
                     </button>
                 </div>
             </div>
@@ -190,6 +231,11 @@
                 <div class="preview-window tab-content" id="previewDocTags">
                     <pre id="previewDocTagsContent" class="json-content"></pre>
                 </div>
+
+                <!-- Chunks Tab -->
+                <div class="preview-window tab-content" id="previewChunks">
+                    <div id="previewChunksContent" class="chunks-content"></div>
+                </div>
             </div>
             
             <!-- Action Buttons -->
@@ -207,6 +253,20 @@
                     Download All as ZIP
                 </button>
             </div>
+        </div>
+        
+        <!-- Documentation Section -->
+        <div class="documentation-section">
+            <details class="documentation-spoiler">
+                <summary class="documentation-summary" id="documentationSummary">
+                    <span class="documentation-icon">📚</span>
+                    <span id="documentationTitle">Документация и возможности</span>
+                    <span class="documentation-arrow">▼</span>
+                </summary>
+                <div class="documentation-content" id="documentationContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </details>
         </div>
         
         <!-- Footer -->

@@ -1,7 +1,7 @@
 # Active Context: Docling OCR API
 
 **Current Date**: November 26, 2025
-**Project Status**: Production Ready (v1.0.4)
+**Project Status**: Production Ready (v1.1.0)
 **Last Updated**: November 26, 2025
 
 ## Current Work Focus
@@ -85,6 +85,19 @@
 - **Rationale**: UI was showing "Models: Not Found" because it expected this field which was missing from the API response
 - **Implementation**: Updated `HealthResponse` schema and `health.py` endpoint to return model loading status
 - **Impact**: UI correctly reflects model availability status
+- **Status**: ✅ Complete and verified
+
+#### 9. Internationalization (i18n) Implementation (November 26, 2025)
+**Decision**: Added multi-language UI support with Russian and English
+- **Rationale**: Improve user experience for international users and support Russian-speaking users
+- **Implementation**: 
+  - Created `app/utils/i18n.py` with translation loading and caching
+  - Added translation files: `app/locales/ru.json` and `app/locales/en.json`
+  - Updated UI components (HTML, CSS, JavaScript) to support language switching
+  - Added language selector in header with URL parameter support (`?lang=ru` or `?lang=en`)
+  - Updated health endpoint to return `default_language` and `supported_languages`
+  - Added `DEFAULT_LANGUAGE` configuration option
+- **Impact**: Users can now switch between Russian and English interfaces seamlessly
 - **Status**: ✅ Complete and verified
 
 ## Active Decisions & Considerations

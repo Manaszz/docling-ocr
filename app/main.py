@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -104,12 +104,44 @@ app.include_router(api_router, prefix=settings.api_prefix)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def root():
+async def root(lang: str = Query(None, alias="lang", description="UI language (ru/en)")):
     """Root endpoint - serve UI"""
+    from app.utils.i18n import get_all_translations, get_supported_languages, SUPPORTED_LANGUAGES
+    import json
+
+    # Determine language from URL param, cookie, or default
+    # Priority: URL param > settings default
+    language = lang if lang and lang in SUPPORTED_LANGUAGES else settings.default_language
+    logger.info(f"Serving UI with language: {language} (requested: {lang})")
+    translations = get_all_translations(language)
+
     index_path = Path(__file__).parent / "templates" / "index.html"
-    
+
     if index_path.exists():
-        return HTMLResponse(content=index_path.read_text(encoding='utf-8'))
+        content = index_path.read_text(encoding='utf-8')
+        # Replace language placeholder
+        content = content.replace('{{ language }}', language)
+        # Inject translations and supported languages as JSON script BEFORE app.js
+        translations_json = json.dumps(translations, ensure_ascii=False)
+        supported_languages_json = json.dumps(list(get_supported_languages()))
+        language_script = f'''<script>
+window.APP_LANGUAGE = "{language}";
+window.APP_TRANSLATIONS = {translations_json};
+window.SUPPORTED_LANGUAGES = {supported_languages_json};
+</script>'''
+        # Insert BEFORE app.js script tag, not at the end of body
+        app_js_tag = '<script src="/static/js/app.js"></script>'
+        if app_js_tag in content:
+            content = content.replace(
+                app_js_tag,
+                f'{language_script}\n    {app_js_tag}'
+            )
+            logger.debug(f"Injected translations script before app.js for language: {language}")
+        else:
+            # Fallback: insert before closing body tag
+            logger.warning("app.js script tag not found, inserting translations at end of body")
+            content = content.replace('</body>', f'{language_script}\n</body>')
+        return HTMLResponse(content=content)
     else:
         # Fallback to API info if template not found
         return JSONResponse({

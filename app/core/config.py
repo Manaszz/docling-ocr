@@ -10,10 +10,13 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # API Configuration
-    api_version: str = "1.0.4"
+    api_version: str = "1.1.0"
     api_title: str = "Docling OCR API"
     api_description: str = "API for converting documents to Markdown using Docling"
     api_prefix: str = "/ocr/docling"
+    
+    # Localization
+    default_language: str = "ru"  # ru or en
     
     # Server Configuration
     host: str = "0.0.0.0"
@@ -63,6 +66,12 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
     
+    # Chunking Configuration
+    chunking_mode: int = 0  # 0=simple (character-based), 1=hierarchical (semantic), 2=hybrid (hierarchical + tokens)
+    chunking_max_tokens: int = 512  # Maximum tokens per chunk for hybrid mode (mode=2)
+    chunking_merge_list_items: bool = True  # Merge list items into single chunk for hierarchical mode (mode=1)
+    chunking_merge_peers: bool = True  # Merge peer chunks in same section for hybrid mode (mode=2)
+    
     # Advanced Features
     enable_table_extraction: bool = True
     enable_visual_grounding: bool = False
@@ -102,6 +111,18 @@ class Settings(BaseSettings):
             # Make relative to project root
             path = Path(__file__).parent.parent.parent / path
         return path
+    
+    def get_chunking_mode_name(self, mode: Optional[int] = None) -> str:
+        """Get human-readable name for chunking mode"""
+        if mode is None:
+            mode = self.chunking_mode
+        
+        mode_names = {
+            0: "simple",
+            1: "hierarchical",
+            2: "hybrid"
+        }
+        return mode_names.get(mode, "simple")
 
 
 # Global settings instance
