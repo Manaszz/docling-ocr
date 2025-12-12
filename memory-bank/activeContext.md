@@ -100,6 +100,21 @@
 - **Impact**: Users can now switch between Russian and English interfaces seamlessly
 - **Status**: ✅ Complete and verified
 
+#### 10. Advanced Chunking Modes Implementation (November 26, 2025)
+**Decision**: Added three chunking modes for RAG applications
+- **Rationale**: Provide flexible chunking strategies for different RAG use cases
+- **Implementation**: 
+  - **Mode 0 (Simple)**: Character-based chunking with fixed size and overlap
+  - **Mode 1 (Hierarchical)**: Semantic chunking using Docling's HierarchicalChunker based on document structure
+  - **Mode 2 (Hybrid)**: Combines hierarchical structure with token-based limits using HybridChunker
+  - Added parameters: `chunking_mode`, `max_tokens`, `merge_list_items`, `merge_peers`
+  - Improved position tracking (start_char, end_char) for all modes
+  - Added HuggingFace tokenizer support for hybrid mode
+  - Updated `/chunk` endpoint with new parameters
+  - Added configuration options in `app/core/config.py`
+- **Impact**: Better chunking quality for RAG applications with semantic awareness
+- **Status**: ✅ Complete and verified
+
 ## Active Decisions & Considerations
 
 ### Architecture Decisions

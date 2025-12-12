@@ -211,14 +211,27 @@ curl -X POST "http://localhost:8002/ocr/docling/extract/tables?pipeline=vlm" \
 ### 5. Chunk for RAG (Docling-Specific)
 
 ```bash
-# Standard pipeline
-curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=std&chunk_size=1000&chunk_overlap=200" \
+# Simple chunking (mode=0) - character-based
+curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=std&chunking_mode=0&chunk_size=1000&chunk_overlap=200" \
   -F "file=@document.pdf"
 
-# VLM pipeline
-curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=vlm&chunk_size=1000&chunk_overlap=200" \
+# Hierarchical chunking (mode=1) - semantic structure-based
+curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=std&chunking_mode=1&merge_list_items=true" \
+  -F "file=@document.pdf"
+
+# Hybrid chunking (mode=2) - hierarchical + tokenization
+curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=std&chunking_mode=2&max_tokens=512&merge_peers=true" \
+  -F "file=@document.pdf"
+
+# VLM pipeline with chunking
+curl -X POST "http://localhost:8002/ocr/docling/chunk?pipeline=vlm&chunking_mode=1" \
   -F "file=@document.pdf"
 ```
+
+**Chunking Modes:**
+- **Mode 0 (Simple)**: Character-based chunking with fixed size and overlap
+- **Mode 1 (Hierarchical)**: Semantic chunking based on document structure (sections, paragraphs, lists)
+- **Mode 2 (Hybrid)**: Combines hierarchical structure with token-based limits for optimal RAG performance
 
 ### 6. Pipeline Status (Docling-Specific)
 
@@ -334,6 +347,18 @@ curl http://localhost:8002/ocr/docling/formats
 | `output_format` | string | `markdown` | Output format for document text: `markdown`, `html`, `json`, `doctags` |
 | `include_doc_tags` | boolean | `true` | Include structured document data (doc tags) in response |
 | `vlm_prompt` | string | - | Custom prompt for VLM pipeline (optional) |
+
+### Chunk Endpoint (`/ocr/docling/chunk`)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pipeline` | string | `std` | Pipeline mode: `std` (standard) or `vlm` (Vision-Language Model) |
+| `chunking_mode` | integer | `0` | Chunking mode: `0`=simple (character-based), `1`=hierarchical (semantic), `2`=hybrid (hierarchical + tokens) |
+| `chunk_size` | integer | `1000` | Maximum chunk size in characters (for mode=0) |
+| `chunk_overlap` | integer | `200` | Overlap between consecutive chunks in characters (for mode=0) |
+| `max_tokens` | integer | `512` | Maximum tokens per chunk (for mode=2, hybrid chunking) |
+| `merge_list_items` | boolean | `true` | Merge list items into single chunk (for mode=1, hierarchical chunking) |
+| `merge_peers` | boolean | `true` | Merge peer chunks in same section (for mode=2, hybrid chunking) |
 
 ### Response Format
 

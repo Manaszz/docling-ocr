@@ -94,6 +94,16 @@ Docling OCR API v1.0.0 is **complete and production-ready**. All core features a
 - **Configuration**: Default language via `DEFAULT_LANGUAGE` environment variable
 - **API Integration**: Health endpoint returns language information
 
+#### 10. Advanced Chunking Modes
+**Status**: ✅ **FULLY IMPLEMENTED**
+- **Three Chunking Modes**: Simple (0), Hierarchical (1), Hybrid (2)
+- **Simple Mode**: Character-based chunking with configurable size and overlap
+- **Hierarchical Mode**: Semantic chunking based on document structure (sections, paragraphs, lists)
+- **Hybrid Mode**: Combines hierarchical structure with token-based limits
+- **Advanced Parameters**: max_tokens, merge_list_items, merge_peers
+- **Position Tracking**: Improved start_char and end_char calculation for all modes
+- **Tokenizer Support**: Optional HuggingFace tokenizer for hybrid mode
+
 ## Implementation Quality
 
 ### Code Quality Metrics
