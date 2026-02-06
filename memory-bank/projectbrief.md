@@ -1,7 +1,7 @@
 # Project Brief: Docling OCR API
 
 **Project Name**: Docling OCR API
-**Version**: 1.0.4
+**Version**: 1.2.0
 **Status**: Production Ready
 **Created**: November 6, 2025
 
@@ -140,6 +140,12 @@ Build a robust, scalable document conversion API that leverages IBM's Docling li
 - On-premise deployment support
 - Web interface implemented
 - Comprehensive documentation
+
+### v1.2.0 - February 6, 2026
+- RapidOCR integration with PaddleOCR PP-OCRv4 models
+- PaddleOCR-VL guidance for VLM pipeline
+- Health endpoint includes active OCR engine
+- New RapidOCR model download script and setup docs
 
 ---
 

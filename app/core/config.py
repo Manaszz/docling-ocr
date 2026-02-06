@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # API Configuration
-    api_version: str = "1.1.0"
+    api_version: str = "1.2.0"
     api_title: str = "Docling OCR API"
     api_description: str = "API for converting documents to Markdown using Docling"
     api_prefix: str = "/ocr/docling"
@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     docling_ocr_languages: str = "en,ru"
     docling_ocr_gpu: bool = False
     docling_ocr_force_full_page: bool = False
+    
+    # RapidOCR Configuration (when engine=rapidocr)
+    docling_rapidocr_backend: str = "onnxruntime"  # onnxruntime, torch
+    docling_rapidocr_models_path: str = ""  # Custom path to pre-downloaded models
+    docling_rapidocr_text_score: float = 0.5  # Confidence threshold
     
     # Table Processing
     docling_table_mode: str = "accurate"  # fast or accurate
@@ -87,6 +92,14 @@ class Settings(BaseSettings):
     def get_ocr_languages(self) -> List[str]:
         """Parse OCR languages from comma-separated string"""
         return [lang.strip() for lang in self.docling_ocr_languages.split(",")]
+    
+    def get_rapidocr_config(self) -> dict:
+        """Get RapidOCR configuration"""
+        return {
+            "backend": self.docling_rapidocr_backend,
+            "models_path": self.docling_rapidocr_models_path,
+            "text_score": self.docling_rapidocr_text_score,
+        }
     
     def get_vlm_config(self) -> Optional[dict]:
         """Get VLM configuration if enabled"""

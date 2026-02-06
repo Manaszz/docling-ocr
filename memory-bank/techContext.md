@@ -153,6 +153,7 @@ docling-ibm-models>=2.0.0
 
 # OCR
 easyocr>=1.7.0
+rapidocr-onnxruntime>=1.3.0
 
 # File Handling
 python-multipart>=0.0.9

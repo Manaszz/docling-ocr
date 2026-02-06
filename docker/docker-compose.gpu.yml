@@ -12,7 +12,7 @@ services:
       - ../.env
     environment:
       # API Configuration
-      - API_VERSION=${API_VERSION:-1.0.4}
+      - API_VERSION=${API_VERSION:-1.2.0}
       - API_TITLE=${API_TITLE:-Docling OCR API}
       - API_DESCRIPTION=${API_DESCRIPTION:-API for converting documents using Docling}
       - API_PREFIX=${API_PREFIX:-/ocr/docling}
@@ -38,6 +38,11 @@ services:
       - DOCLING_OCR_LANGUAGES=${DOCLING_OCR_LANGUAGES:-en,ru}
       - DOCLING_OCR_GPU=${DOCLING_OCR_GPU:-true}
       - DOCLING_OCR_FORCE_FULL_PAGE=${DOCLING_OCR_FORCE_FULL_PAGE:-false}
+      
+      # RapidOCR Configuration (when DOCLING_OCR_ENGINE=rapidocr)
+      - DOCLING_RAPIDOCR_BACKEND=${DOCLING_RAPIDOCR_BACKEND:-onnxruntime}
+      - DOCLING_RAPIDOCR_MODELS_PATH=${DOCLING_RAPIDOCR_MODELS_PATH:-/root/.cache/rapidocr/models}
+      - DOCLING_RAPIDOCR_TEXT_SCORE=${DOCLING_RAPIDOCR_TEXT_SCORE:-0.5}
       
       # Table Processing
       - DOCLING_TABLE_MODE=${DOCLING_TABLE_MODE:-accurate}
@@ -79,6 +84,8 @@ services:
       - ../models:/root/.cache/docling/models
       # Монтируем модели EasyOCR в стандартный путь EasyOCR
       - ../models/EasyOcr:/root/.EasyOCR/model
+      # Монтируем модели RapidOCR/PaddleOCR
+      - ../models/rapidocr:/root/.cache/rapidocr/models
       - ../logs:/app/logs
     
     healthcheck:

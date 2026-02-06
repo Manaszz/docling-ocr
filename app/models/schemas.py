@@ -75,6 +75,7 @@ class HealthResponse(BaseModel):
     docling_version: Optional[str] = Field(None, description="Docling library version")
     pipelines: Dict[str, Any] = Field(..., description="Status of available pipelines")
     ocr_enabled: bool = Field(..., description="Whether OCR is enabled in standard pipeline")
+    ocr_engine: Optional[str] = Field(None, description="Current OCR engine (easyocr, rapidocr, tesseract)")
     vlm_enabled: bool = Field(..., description="Whether VLM pipeline is available")
     models_loaded: bool = Field(..., description="Whether AI models are loaded")
 

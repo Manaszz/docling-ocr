@@ -7,6 +7,8 @@ Docling OCR service supports OCR for scanned documents and images. OCR can be to
 - **API**: `/ocr/docling/pipeline/ocr/toggle` endpoint
 - **Config**: `.env` file `DOCLING_OCR_ENABLED` setting
 
+For PaddleOCR and RapidOCR specifics, see `PADDLEOCR_SETUP.md`.
+
 ## When OCR is Needed
 
 ### ✅ OCR Not Required (Fast Mode)
@@ -88,29 +90,31 @@ DOCLING_OCR_ENABLED=true
 DOCLING_OCR_ENGINE=tesseract
 ```
 
-### 3. RapidOCR (Lightweight)
+### 3. RapidOCR (PP-OCRv4, Recommended)
 
 **Pros**:
-- Very fast
-- Lightweight models (~40MB)
-- Good for production
-- CPU-optimized
+- High accuracy with PP-OCRv4 models
+- Lightweight models (~16MB total)
+- Fast on CPU and GPU
+- Excellent for production and offline use
 
 **Cons**:
-- Lower accuracy than EasyOCR
-- Less language support
-- Requires model download (handled by Docling)
+- Requires model download (ONNX files)
+- GPU support requires torch backend
 
 **Setup**:
 ```bash
-# Models auto-downloaded with Docling models
-python scripts/download_models.py -o ./models
+# Download RapidOCR models (PP-OCRv4)
+python scripts/download_rapidocr_models.py -o ./models/rapidocr
 ```
 
 **Configuration** (`.env`):
 ```bash
 DOCLING_OCR_ENABLED=true
 DOCLING_OCR_ENGINE=rapidocr
+DOCLING_RAPIDOCR_BACKEND=onnxruntime  # onnxruntime (CPU) or torch (GPU)
+DOCLING_RAPIDOCR_MODELS_PATH=./models/rapidocr
+DOCLING_RAPIDOCR_TEXT_SCORE=0.5
 ```
 
 ## UI Control
@@ -192,6 +196,21 @@ cd docling-ocr
 
 **Total Size**: ~500MB
 
+### RapidOCR Models (PP-OCRv4)
+
+**Download Script**:
+```bash
+python scripts/download_rapidocr_models.py -o ./models/rapidocr
+```
+
+**Expected Models**:
+- `ch_PP-OCRv4_det_infer.onnx` (~4.5MB)
+- `ch_PP-OCRv4_rec_infer.onnx` (~10MB)
+- `ch_ppocr_mobile_v2.0_cls_infer.onnx` (~1.4MB)
+- `ppocr_keys_v1.txt` (~300KB)
+
+**Total Size**: ~16MB
+
 ### Verify Models
 
 ```bash
@@ -217,11 +236,13 @@ DOCLING_OCR_ENGINE=easyocr
 # Languages (comma-separated)
 DOCLING_OCR_LANGUAGES=en,ru
 
-# GPU Support (EasyOCR only)
+# GPU Support (EasyOCR and RapidOCR with torch backend)
 DOCLING_OCR_GPU=false
 
-# Allow auto-download of models
-DOCLING_OCR_AUTO_DOWNLOAD=true
+# RapidOCR configuration (when engine=rapidocr)
+DOCLING_RAPIDOCR_BACKEND=onnxruntime  # onnxruntime (CPU) or torch (GPU)
+DOCLING_RAPIDOCR_MODELS_PATH=./models/rapidocr
+DOCLING_RAPIDOCR_TEXT_SCORE=0.5
 ```
 
 ### Supported Languages
@@ -239,9 +260,9 @@ DOCLING_OCR_AUTO_DOWNLOAD=true
 - Depends on installed language packs
 - Common: `eng`, `rus`, `deu`, `fra`, `spa`
 
-**RapidOCR**:
-- Primarily Chinese and English
-- Limited multilingual support
+**RapidOCR (PP-OCRv4)**:
+- 109+ languages supported (PaddleOCR models)
+- Configure via `DOCLING_OCR_LANGUAGES`
 
 ## Performance Comparison
 
@@ -258,11 +279,11 @@ DOCLING_OCR_AUTO_DOWNLOAD=true
 - **Memory**: ~500MB
 - **Setup**: Medium (external install)
 
-### RapidOCR
-- **Accuracy**: ★★★☆☆ (80-85%)
+### RapidOCR (PP-OCRv4)
+- **Accuracy**: ★★★★☆ (90-95%)
 - **Speed**: ★★★★★ (<1 sec/page)
 - **Memory**: ~200MB
-- **Setup**: Easy (Python only)
+- **Setup**: Easy (download ONNX models once)
 
 ## Recommendations
 
@@ -279,10 +300,9 @@ DOCLING_OCR_ENABLED=false
 
 ### For Mixed (Digital + Scans)
 ```bash
-# Use EasyOCR with auto-download
+# Use EasyOCR for maximum scan accuracy
 DOCLING_OCR_ENABLED=true
 DOCLING_OCR_ENGINE=easyocr
-DOCLING_OCR_AUTO_DOWNLOAD=true
 ```
 
 **Benefits**:
@@ -292,7 +312,7 @@ DOCLING_OCR_AUTO_DOWNLOAD=true
 
 ### For Production (High Volume)
 ```bash
-# Use RapidOCR for speed
+# Use RapidOCR (PP-OCRv4) for speed + accuracy
 DOCLING_OCR_ENABLED=true
 DOCLING_OCR_ENGINE=rapidocr
 DOCLING_TABLE_MODE=fast
@@ -301,7 +321,7 @@ DOCLING_TABLE_MODE=fast
 **Benefits**:
 - Fastest processing
 - Lower resource usage
-- Good enough accuracy
+- Strong accuracy with PP-OCRv4
 
 ### For Highest Accuracy
 ```bash

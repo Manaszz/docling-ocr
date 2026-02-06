@@ -1,8 +1,8 @@
 # Active Context: Docling OCR API
 
-**Current Date**: November 26, 2025
-**Project Status**: Production Ready (v1.1.0)
-**Last Updated**: November 26, 2025
+**Current Date**: February 6, 2026
+**Project Status**: Production Ready (v1.2.0)
+**Last Updated**: February 6, 2026
 
 ## Current Work Focus
 
@@ -114,6 +114,23 @@
   - Added configuration options in `app/core/config.py`
 - **Impact**: Better chunking quality for RAG applications with semantic awareness
 - **Status**: ✅ Complete and verified
+
+#### 11. RapidOCR Integration (February 6, 2026)
+**Decision**: Added RapidOCR support with PaddleOCR PP-OCRv4 models
+- **Rationale**: Improve OCR accuracy and speed with lightweight models
+- **Implementation**:
+  - Added RapidOCR configuration and model path support
+  - Added RapidOCR model download script for offline deployments
+  - Updated Docker mounts for RapidOCR models
+- **Impact**: Faster OCR with improved accuracy and easier offline setup
+- **Status**: ✅ Complete and documented
+
+#### 12. PaddleOCR-VL Documentation (February 6, 2026)
+**Decision**: Documented PaddleOCR-VL usage for VLM pipeline
+- **Rationale**: Provide a recommended VLM model for document parsing
+- **Implementation**: Added `PADDLEOCR_SETUP.md` and updated README
+- **Impact**: Clear guidance for RapidOCR and PaddleOCR-VL integration
+- **Status**: ✅ Complete and documented
 
 ## Active Decisions & Considerations
 

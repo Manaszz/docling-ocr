@@ -104,6 +104,8 @@ class ConverterManager:
             "languages": settings.get_ocr_languages(),
             "gpu": settings.docling_ocr_gpu,
             "force_full_page": settings.docling_ocr_force_full_page,
+            # RapidOCR specific configuration
+            "rapidocr": settings.get_rapidocr_config(),
         }
         
         table_config = {

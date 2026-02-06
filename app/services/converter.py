@@ -10,6 +10,7 @@ from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
     EasyOcrOptions,
+    RapidOcrOptions,
     TableFormerMode,
     TableStructureOptions,
     AcceleratorOptions,
@@ -121,29 +122,70 @@ class DoclingConverterService:
         pipeline_options.artifacts_path = "/root/.cache/docling/models"  # Try explicit path to mounted models
         
         # Configure OCR engine
-        if ocr_enabled and ocr_engine == "easyocr":
-            # Determine EasyOCR model storage path
-            # Priority: /root/.EasyOCR/model (docker mount) -> artifacts_path/EasyOcr -> default
-            easyocr_model_path = None
-            possible_paths = [
-                Path("/root/.EasyOCR/model"),  # Docker mount path
-                Path(self.artifacts_path) / "EasyOcr" if self.artifacts_path else None,
-                Path("./models/EasyOcr"),  # Local development
-            ]
-            for path in possible_paths:
-                if path and path.exists() and (path / "craft_mlt_25k.pth").exists():
-                    easyocr_model_path = str(path)
-                    logger.info(f"Using EasyOCR models from: {easyocr_model_path}")
-                    break
+        if ocr_enabled:
+            if ocr_engine == "easyocr":
+                # Determine EasyOCR model storage path
+                # Priority: /root/.EasyOCR/model (docker mount) -> artifacts_path/EasyOcr -> default
+                easyocr_model_path = None
+                possible_paths = [
+                    Path("/root/.EasyOCR/model"),  # Docker mount path
+                    Path(self.artifacts_path) / "EasyOcr" if self.artifacts_path else None,
+                    Path("./models/EasyOcr"),  # Local development
+                ]
+                for path in possible_paths:
+                    if path and path.exists() and (path / "craft_mlt_25k.pth").exists():
+                        easyocr_model_path = str(path)
+                        logger.info(f"Using EasyOCR models from: {easyocr_model_path}")
+                        break
+                
+                ocr_options = EasyOcrOptions(
+                    lang=ocr_languages,
+                    use_gpu=ocr_gpu,
+                    force_full_page_ocr=force_full_page,
+                    model_storage_directory=easyocr_model_path,
+                    download_enabled=easyocr_model_path is None,  # Allow download only if no local models
+                )
+                pipeline_options.ocr_options = ocr_options
             
-            ocr_options = EasyOcrOptions(
-                lang=ocr_languages,
-                use_gpu=ocr_gpu,
-                force_full_page_ocr=force_full_page,
-                model_storage_directory=easyocr_model_path,
-                download_enabled=easyocr_model_path is None,  # Allow download only if no local models
-            )
-            pipeline_options.ocr_options = ocr_options
+            elif ocr_engine == "rapidocr":
+                # RapidOCR configuration (PaddleOCR via RapidOCR with PP-OCRv4 models)
+                rapidocr_config = self.ocr_config.get("rapidocr", {})
+                
+                ocr_options = RapidOcrOptions(
+                    lang=ocr_languages,
+                    backend=rapidocr_config.get("backend", "onnxruntime"),
+                    force_full_page_ocr=force_full_page,
+                    text_score=rapidocr_config.get("text_score", 0.5),
+                )
+                
+                # Set custom model paths for air-gapped deployment
+                models_path = rapidocr_config.get("models_path", "")
+                if models_path:
+                    models_dir = Path(models_path)
+                    if models_dir.exists():
+                        logger.info(f"Using RapidOCR models from: {models_path}")
+                        ocr_options.det_model_path = str(models_dir / "ch_PP-OCRv4_det_infer.onnx")
+                        ocr_options.cls_model_path = str(models_dir / "ch_ppocr_mobile_v2.0_cls_infer.onnx")
+                        ocr_options.rec_model_path = str(models_dir / "ch_PP-OCRv4_rec_infer.onnx")
+                        ocr_options.rec_keys_path = str(models_dir / "ppocr_keys_v1.txt")
+                    else:
+                        logger.warning(f"RapidOCR models path does not exist: {models_path}")
+                else:
+                    # Check default mount paths
+                    default_paths = [
+                        Path("/root/.cache/rapidocr/models"),  # Docker/K8s mount path
+                        Path("./models/rapidocr"),  # Local development
+                    ]
+                    for path in default_paths:
+                        if path.exists() and (path / "ch_PP-OCRv4_det_infer.onnx").exists():
+                            logger.info(f"Using RapidOCR models from: {path}")
+                            ocr_options.det_model_path = str(path / "ch_PP-OCRv4_det_infer.onnx")
+                            ocr_options.cls_model_path = str(path / "ch_ppocr_mobile_v2.0_cls_infer.onnx")
+                            ocr_options.rec_model_path = str(path / "ch_PP-OCRv4_rec_infer.onnx")
+                            ocr_options.rec_keys_path = str(path / "ppocr_keys_v1.txt")
+                            break
+                
+                pipeline_options.ocr_options = ocr_options
         
         # Create converter
         converter = DocumentConverter(

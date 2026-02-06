@@ -23,7 +23,7 @@
 - **Расширенные возможности OCR**
   - Поддержка EasyOCR (многоязычный, ускорение на GPU)
   - Интеграция Tesseract
-  - RapidOCR для высокой производительности
+  - RapidOCR с моделями PaddleOCR PP-OCRv4 (рекомендуется по точности)
   - Автоматическое определение сканированных и цифровых PDF (режимы auto/always/never)
 
 - **Интеллектуальная обработка документов**
@@ -111,9 +111,15 @@ DEFAULT_LANGUAGE=ru  # ru (русский) или en (английский)
 
 # Конфигурация OCR (Стандартный пайплайн)
 DOCLING_OCR_ENABLED=true
-DOCLING_OCR_ENGINE=easyocr
+DOCLING_OCR_ENGINE=easyocr  # easyocr, tesseract, rapidocr
 DOCLING_OCR_LANGUAGES=en,ru
 DOCLING_OCR_GPU=false
+
+# Конфигурация RapidOCR (если DOCLING_OCR_ENGINE=rapidocr)
+# RapidOCR использует модели PaddleOCR PP-OCRv4 в формате ONNX
+DOCLING_RAPIDOCR_BACKEND=onnxruntime  # onnxruntime (CPU) или torch (GPU)
+DOCLING_RAPIDOCR_MODELS_PATH=/root/.cache/rapidocr/models
+DOCLING_RAPIDOCR_TEXT_SCORE=0.5  # Порог уверенности (0.0-1.0)
 
 # Конфигурация VLM (VLM пайплайн)
 DOCLING_VLM_ENABLED=true  # Включить VLM пайплайн
@@ -148,14 +154,17 @@ GET /ocr/docling/health
 ```json
 {
   "status": "healthy",
-  "version": "1.0.4",
+  "version": "1.2.0",
   "default_pipeline": "std",
+  "default_language": "ru",
+  "supported_languages": ["ru", "en"],
   "docling_version": "2.0.0",
   "pipelines": {
     "std": {"available": true, "loaded": true},
     "vlm": {"available": true, "loaded": false, "enabled": false, "model": null}
   },
   "ocr_enabled": true,
+  "ocr_engine": "easyocr",
   "vlm_enabled": false,
   "models_loaded": true
 }
@@ -197,6 +206,7 @@ DEFAULT_LANGUAGE=en  # Английский
 - [Руководство по установке](INSTALLATION.md)
 - [Руководство по развертыванию](DOCKER_DEPLOYMENT.md)
 - [On-Premise развертывание](ON_PREMISE_DEPLOYMENT.md)
+- [PaddleOCR Setup](PADDLEOCR_SETUP.md) - RapidOCR и PaddleOCR-VL
 - [Справочник API](http://localhost:8002/docs) (когда сервис запущен)
 
 ## 📄 Лицензия
@@ -208,6 +218,8 @@ MIT License - см. файл [LICENSE](LICENSE)
 - [Docling](https://docling-project.github.io/docling/) - Основная обработка документов
 - [FastAPI](https://fastapi.tiangolo.com/) - Веб-фреймворк
 - [EasyOCR](https://github.com/JaidedAI/EasyOCR) - OCR движок
+- [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) - PP-OCRv4 и PaddleOCR-VL модели
+- [RapidOCR](https://github.com/RapidAI/RapidOCR) - OCR обертка для PaddleOCR
 - [MiD-OCR](https://github.com/Manaszz/MiD-OCR) - Вдохновение для дизайна API
 
 ---

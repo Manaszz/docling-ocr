@@ -23,7 +23,7 @@
 - **Advanced OCR Capabilities**
   - EasyOCR support (multi-language, GPU acceleration)
   - Tesseract integration
-  - RapidOCR for high performance
+  - RapidOCR with PaddleOCR PP-OCRv4 models (recommended for best accuracy)
   - Automatic detection of scanned vs. digital PDFs (auto/always/never modes)
 
 - **Intelligent Document Processing**
@@ -124,14 +124,17 @@ GET /ocr/docling/health
 ```json
 {
   "status": "healthy",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "default_pipeline": "std",
+  "default_language": "ru",
+  "supported_languages": ["ru", "en"],
   "docling_version": "2.0.0",
   "pipelines": {
     "std": {"available": true, "loaded": true},
     "vlm": {"available": true, "loaded": false, "enabled": false, "model": null}
   },
   "ocr_enabled": true,
+  "ocr_engine": "easyocr",
   "vlm_enabled": false,
   "models_loaded": true
 }
@@ -402,9 +405,15 @@ DEFAULT_LANGUAGE=ru  # ru (Russian) or en (English) - default language for UI
 
 # OCR Configuration (Standard Pipeline)
 DOCLING_OCR_ENABLED=true
-DOCLING_OCR_ENGINE=easyocr
+DOCLING_OCR_ENGINE=easyocr  # easyocr, tesseract, or rapidocr
 DOCLING_OCR_LANGUAGES=en,ru
 DOCLING_OCR_GPU=false
+
+# RapidOCR Configuration (when DOCLING_OCR_ENGINE=rapidocr)
+# Uses PaddleOCR PP-OCRv4 models - recommended for best accuracy
+# DOCLING_RAPIDOCR_BACKEND=onnxruntime  # onnxruntime (CPU) or torch (GPU)
+# DOCLING_RAPIDOCR_MODELS_PATH=/path/to/models
+# DOCLING_RAPIDOCR_TEXT_SCORE=0.5  # Confidence threshold (0.0-1.0)
 
 # VLM Configuration (VLM Pipeline)
 DOCLING_VLM_ENABLED=true  # Enable VLM pipeline
@@ -445,8 +454,8 @@ Uses specialized AI models:
 Uses Vision-Language Models for end-to-end processing:
 - Single model for entire document
 - Supports OpenAI-compatible APIs (vLLM, Ollama, OpenRouter)
-- Models: Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision, etc.
-- Default: `qwen/qwen3-vl-235b-a22b-instruct` via OpenRouter
+- Models: PaddleOCR-VL, Qwen3-VL, Qwen2.5-VL, Pixtral, Granite-Vision, etc.
+- Recommended: `PaddleOCR-VL-0.9B` for document parsing (109 languages, tables, formulas, charts)
 - Customizable prompts: Use `?vlm_prompt=custom prompt` for specialized instructions
 - **Requires configuration**: Set `DOCLING_VLM_ENABLED=true` and configure VLM API settings
 
@@ -549,6 +558,7 @@ See `examples/` directory:
 - [Installation Guide](INSTALLATION.md)
 - [Deployment Guide](DOCKER_DEPLOYMENT.md)
 - [On-Premise Deployment](ON_PREMISE_DEPLOYMENT.md)
+- [PaddleOCR Setup](PADDLEOCR_SETUP.md) - RapidOCR and PaddleOCR-VL integration
 - [VLM Setup Guide](VLM_SETUP.md)
 - [Migration from MiD-OCR](MIGRATION_FROM_MID.md)
 - [API Reference](http://localhost:8002/docs) (when service is running)
@@ -566,6 +576,8 @@ MIT License - see [LICENSE](LICENSE) file
 - [Docling](https://docling-project.github.io/docling/) - Core document processing
 - [FastAPI](https://fastapi.tiangolo.com/) - Web framework
 - [EasyOCR](https://github.com/JaidedAI/EasyOCR) - OCR engine
+- [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) - PP-OCRv4 and PaddleOCR-VL models
+- [RapidOCR](https://github.com/RapidAI/RapidOCR) - OCR wrapper for PaddleOCR models
 - [MiD-OCR](https://github.com/Manaszz/MiD-OCR) - API design inspiration
 
 ## 📞 Support
